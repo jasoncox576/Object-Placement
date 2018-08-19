@@ -4,6 +4,34 @@
 <div class="col-lg-6"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 300px; height: 300px; border-width: 5px; border-style: solid;" />
 <h3 class="form-group"><!-- Question for the Worker --><label class="group-label">Which object on the right is more similar to the one shown above?:</label> <!-- Input from the Worker --></h3>
 </div>
+<script>
+function getName(id)
+{
+   var elem = document.getElementById(id).value;
+   elem = elem.substring(0,elem.indexOf('.'));
+   document.write(elem);
+}
+</script><input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" />
+<div style="
+      top: 316;
+      left: 350;
+      position: absolute;
+      z-index: 1;
+      visibility: show;"><script>getName("img2")</script></div>
+
+<div style="
+      top: 240;
+      left: 880;
+      position: absolute;
+      z-index: 1;
+      visibility: show;"><script>getName("img1")</script></div>
+
+<div style="
+      top: 240;
+      left: 1300;
+      position: absolute;
+      z-index: 1;
+      visibility: show;"><script>getName("img3")</script></div>
 
 <div class="btn-group-horizontal" data-toggle="buttons" id="CategoryInputs">
 <div class="col-lg-3"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 200px; height: 200px;" /> <label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" />Left </label></div>
