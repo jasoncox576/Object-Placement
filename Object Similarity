@@ -1,7 +1,7 @@
 <meta content="width=device-width,initial-scale=1" name="viewport" />
 <div class="panel-body" id="instructionBody">
 <div class="row" id="workContent">
-<div class="col-lg-6"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 300px; height: 300px; border-width: 5px; border-style: solid;" />
+<div class="col-lg-6"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 400px; height: 400px; border-width: 5px; border-style: solid;" />
 <h3 class="form-group"><!-- Question for the Worker --><label class="group-label">Which object on the right is more similar to the one shown above?:</label> <!-- Input from the Worker --></h3>
 </div>
 <script>
@@ -19,24 +19,10 @@ function getName(id)
       z-index: 1;
       visibility: show;"><script>getName("img2")</script></div>
 
-<div style="
-      top: 240;
-      left: 880;
-      position: absolute;
-      z-index: 1;
-      visibility: show;"><script>getName("img1")</script></div>
-
-<div style="
-      top: 240;
-      left: 1300;
-      position: absolute;
-      z-index: 1;
-      visibility: show;"><script>getName("img3")</script></div>
-
 <div class="btn-group-horizontal" data-toggle="buttons" id="CategoryInputs">
-<div class="col-lg-3"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 200px; height: 200px;" /> <label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" />Left </label></div>
+<div class="col-lg-3"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img1")</script> </label></div>
 
-<div class="col-lg-3"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 200px; height: 200px;" /> <label class="btn btn-default"> <input id="category2" name="categories" required="" type="radio" value="Right" />Right </label> <!-- Add more inputs by copy pasting the "label" container and incrementing/changing the "id" attribute on the "input" field to always be unique. Make sure the "value" attribute has the correct value that you want recorded as a response. --></div>
+<div class="col-lg-3"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"> <input id="category2" name="categories" required="" type="radio" value="Right" /><script>getName("img3")</script> </label> <!-- Add more inputs by copy pasting the "label" container and incrementing/changing the "id" attribute on the "input" field to always be unique. Make sure the "value" attribute has the correct value that you want recorded as a response. --></div>
 </div>
 </div>
 </div>
