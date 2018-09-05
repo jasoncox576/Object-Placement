@@ -1,4 +1,14 @@
 <meta content="width=device-width,initial-scale=1" name="viewport" />
+<section class="container" id="Categorization"><!-- Instructions (collapsible) -->
+<div class="row">
+<div class="col-xs-12 col-md-12">
+<div class="panel panel-primary"><!-- WARNING: the ids "collapseTrigger" and "instructionBody" are being used to enable expand/collapse feature --><a class="panel-heading" href="javascript:void(0);" id="collapseTrigger"><strong>Categorization Instructions</strong> <span class="collapse-text">(Click to expand)</span> </a>
+<div class="panel-body" id="instructionBody"><!-- Detailed instructions for the Worker-->If you are unable to see the 2 smaller, unbordered images right/left of each other or if the formatting seems wrong, then try zooming out. Thanks!</div>
+</div>
+</div>
+</div>
+<!-- End instructions --><!-- Categorization Layout -->
+
 <div class="panel-body" id="instructionBody">
 <div class="row" id="workContent">
 <div class="col-lg-6"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 400px; height: 400px; border-width: 5px; border-style: solid;" />
@@ -13,8 +23,8 @@ function getName(id)
 }
 </script><input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" />
 <div style="
-      top: 420;
-      left: 330;
+      top: 530;
+      left: 400;
       position: absolute;
       z-index: 1;
       visibility: show;"><script>getName("img2")</script></div>
@@ -26,22 +36,7 @@ function getName(id)
 </div>
 </div>
 </div>
+</section>
 <link crossorigin="anonymous" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" rel="stylesheet" />
 <style type="text/css">#collapseTrigger{ color:#fff; display: block; text-decoration: none; } #submitButton{ white-space: normal; } #instructionBody table{ font-size: 14px; } #instructionBody table caption{ text-align: left; padding: 0 0 5px 0; } #CategoryInputs{ display: block; margin-top: 10px; } .content{ margin-bottom: 15px; } .radio:first-of-type{ margin-top: -5px; }
 </style>
-<!-- Close internal style sheet --><!-- External JS references --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Open internal javascript --><script>
-// highlight selected category
-      $("#CategoryInputs input:radio").change(function(){
-        $("#CategoryInputs input:radio").parent().removeClass("btn-success");
-        $("#CategoryInputs input:radio").parent().addClass("btn-default");
-        if($(this).is(":checked")){
-          $(this).parent().removeClass("btn-default");
-          $(this).parent().addClass("btn-success");
-        }else{
-          $(this).parent().removeClass("btn-success");
-          $(this).parent().addClass("btn-default");
-        }
-      });
-      // end highlight
-    });
-  </script><!-- Close internal javascript -->
