@@ -13,8 +13,8 @@ function getName(id)
 }
 </script><input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" />
 <div style="
-      top: 316;
-      left: 350;
+      top: 420;
+      left: 330;
       position: absolute;
       z-index: 1;
       visibility: show;"><script>getName("img2")</script></div>
