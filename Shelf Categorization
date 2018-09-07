@@ -1,42 +1,47 @@
 <meta content="width=device-width,initial-scale=1" name="viewport" />
-<section class="container" id="Categorization"><!-- Instructions (collapsible) -->
-<div class="row">
-<div class="col-xs-12 col-md-12">
-<div class="panel panel-primary"><!-- WARNING: the ids "collapseTrigger" and "instructionBody" are being used to enable expand/collapse feature --><a class="panel-heading" href="javascript:void(0);" id="collapseTrigger"><strong>Categorization Instructions</strong> <span class="collapse-text">(Click to expand)</span> </a>
-<div class="panel-body" id="instructionBody"><!-- Detailed instructions for the Worker-->If you are unable to see the 2 smaller, unbordered images right/left of each other or if the formatting seems wrong, then try zooming out. Thanks!</div>
-</div>
-</div>
-</div>
-<!-- End instructions --><!-- Categorization Layout -->
-
-<div class="panel-body" id="instructionBody">
-<div class="row" id="workContent">
-<div class="col-lg-6"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 400px; height: 400px; border-width: 5px; border-style: solid;" />
-<h3 class="form-group"><!-- Question for the Worker --><label class="group-label">Which object on the right is more similar to the one shown above?:</label> <!-- Input from the Worker --></h3>
-</div>
-<script>
-function getName(id)
-{
-   var elem = document.getElementById(id).value;
-   elem = elem.substring(0,elem.indexOf('.'));
-   document.write(elem);
+<style type="text/css">body {
+        background-image: url("https://drive.google.com/uc?id=17V_BRkPML6-Y5vKgTY-TB-cheOM-WMA1");
 }
-</script><input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" />
-<div style="
-      top: 530;
-      left: 400;
-      position: absolute;
-      z-index: 1;
-      visibility: show;"><script>getName("img2")</script></div>
+</style>
+<div class="panel-body" id="instructionBody">
+<div style="width: 100%;">
+<div style="float: left;">.
+<div class="row" id="workContent">
+<div class="col-lg-4"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px; border-width: 5px; border-style: solid;" />
+<h3 class="form-group"><!-- Question for the Worker --><label class="group-label">On which shelf of the cupboard would you place the above object?:</label> <!-- Input from the Worker --></h3>
 
-<div class="btn-group-horizontal" data-toggle="buttons" id="CategoryInputs">
-<div class="col-lg-3"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img1")</script> </label></div>
+<div class="btn-group-vertical" data-toggle="buttons" id="CategoryInputs"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="category 1" />Top Shelf </label> <label class="btn btn-default"> <input id="category2" name="categories" required="" type="radio" value="category 2" />Second Shelf </label> <label class="btn btn-default"> <input id="category3" name="categories" required="" type="radio" value="category 3" />Third Shelf </label> <label class="btn btn-default"> <input id="category4" name="categories" required="" type="radio" value="category 4" />Bottom Shelf </label> <label class="btn btn-default"> <input id="category5" name="categories" required="" type="radio" value="category 5" />On the Floor </label></div>
+</div>
 
-<div class="col-lg-3"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"> <input id="category2" name="categories" required="" type="radio" value="Right" /><script>getName("img3")</script> </label> <!-- Add more inputs by copy pasting the "label" container and incrementing/changing the "id" attribute on the "input" field to always be unique. Make sure the "value" attribute has the correct value that you want recorded as a response. --></div>
+<div style="float: right;">.
+<div class="row-lg-5"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 200px; height: 200px;" /></div>
+
+<div class="row-lg-5"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 200px; height: 200px;" /></div>
+
+<div class="row-lg-5"><img alt="image4" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url4}" style="width: 200px; height: 200px;" /></div>
+
+<div class="row-lg-5"><img alt="image5" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url5}" style="width: 200px; height: 200px;" /></div>
 </div>
 </div>
 </div>
-</section>
+</div>
+</div>
 <link crossorigin="anonymous" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" rel="stylesheet" />
 <style type="text/css">#collapseTrigger{ color:#fff; display: block; text-decoration: none; } #submitButton{ white-space: normal; } #instructionBody table{ font-size: 14px; } #instructionBody table caption{ text-align: left; padding: 0 0 5px 0; } #CategoryInputs{ display: block; margin-top: 10px; } .content{ margin-bottom: 15px; } .radio:first-of-type{ margin-top: -5px; }
 </style>
+<!-- Close internal style sheet --><!-- External JS references --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Open internal javascript --><script>
+// highlight selected category
+      $("#CategoryInputs input:radio").change(function(){
+        $("#CategoryInputs input:radio").parent().removeClass("btn-success");
+        $("#CategoryInputs input:radio").parent().addClass("btn-default");
+        if($(this).is(":checked")){
+          $(this).parent().removeClass("btn-default");
+          $(this).parent().addClass("btn-success");
+        }else{
+          $(this).parent().removeClass("btn-success");
+          $(this).parent().addClass("btn-default");
+        }
+      });
+      // end highlight
+    });
+  </script><!-- Close internal javascript -->
