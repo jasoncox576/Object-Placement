@@ -2,44 +2,6 @@
         background-image: url("https://drive.google.com/uc?id=17V_BRkPML6-Y5vKgTY-TB-cheOM-WMA1");
     }
 </style>
-<div class="panel-body" id="instructionBody">
-<div style="width: 100%;">
-<div style="float: left;">.
-<div class="row" id="workContent">
-<div class="col-lg-4"><img alt="image2" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px; border-width: 5px; border-style: solid;" />
-<h3 class="form-group"><!-- Question for the Worker --><label class="group-label">On which shelf of the cupboard would you place the above object?:</label> <!-- Input from the Worker --></h3>
-</div>
-
-<div style="float: right;">.
-<div class="row-lg-5">
-<div class="row">
-<div class="col-md-8"><img alt="img1" class="img-responsive" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 200px; height: 200px;" /></div>
-
-<div class="col-md-4"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img1")</script> </label></div>
-</div>
-</div>
-
-<div class="row-lg-5">
-<div class="row">
-<div class="col-md-8"><img alt="img3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 200px; height: 200px;" /></div>
-
-<div class="col-md-4"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img3")</script> </label></div>
-</div>
-</div>
-
-<div class="row-lg-5">
-<div class="row">
-<div class="col-md-8"><img alt="img4" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url4}" style="width: 200px; height: 200px;" /></div>
-
-<div class="col-md-4"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img4")</script> </label></div>
-</div>
-</div>
-
-<div class="row-lg-5">
-<div class="row">
-<div class="col-md-8"><img class="img-responsive center-block" id="img5" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url5}" style="width: 200px; height: 200px;" /></div>
-
-<div class="col-md-4"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img5")</script>&nbsp;</label></div>
 <script>
 function getName(id)
 {
@@ -47,7 +9,55 @@ function getName(id)
    elem = elem.substring(0,elem.indexOf('.'));
    document.write(elem);
 }
-</script>&nbsp;<input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" /> <input id="img4" type="hidden" value="${image_url4}" /> <input id="img5" type="hidden" value="${image_url5}" /></div>
+</script>
+<p><input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" /> <input id="img4" type="hidden" value="${image_url4}" /> <input id="img5" type="hidden" value="${image_url5}" /></p>
+
+<div class="panel-body" id="instructionBody">
+<div style="width: 100%;">
+<div style="float: left;">.
+<div class="row" id="workContent">
+<div class="col-lg-4"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px; border-width: 5px; border-style: solid;" />
+<h3 class="form-group"><!-- Question for the Worker --><label class="group-label">On which shelf of the cupboard would you place the above object?:</label> <!-- Input from the Worker --></h3>
+</div>
+
+<div style="float: right;">.
+<div class="row-lg-5">
+<div class="row">
+<div class="col-md-7"><img alt="img1" class="img-responsive" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 200px; height: 200px;" /></div>
+
+<div class="col-md-5"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img1")</script> </label></div>
+</div>
+</div>
+
+<div class="row-lg-5">
+<div class="row">
+<div class="col-md-7"><img alt="img3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 200px; height: 200px;" /></div>
+
+<div class="col-md-5"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img2")</script> </label></div>
+</div>
+</div>
+
+<div class="row-lg-5">
+<div class="row">
+<div class="col-md-7"><img alt="img4" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url4}" style="width: 200px; height: 200px;" /></div>
+
+<div class="col-md-5"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img4")</script> </label></div>
+</div>
+</div>
+
+<div class="row-lg-5">
+<div class="row">
+<div class="col-md-7"><img class="img-responsive center-block" id="img5" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url5}" style="width: 200px; height: 200px;" /></div>
+
+<div class="col-md-5"><label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img5")</script>&nbsp;</label></div>
+<input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" /> <input id="img4" type="hidden" value="${image_url4}" /> <input id="img5" type="hidden" value="${image_url5}" /></div>
+
+<div style="
+      top: 347;
+      left: 170;
+      position: absolute;
+      z-index: 1;
+      visibility: show;"><script>getName("img3")</script></div>
 </div>
 </div>
 </div>
