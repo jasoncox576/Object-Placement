@@ -1,5 +1,7 @@
 <meta content="width=device-width,initial-scale=1" name="viewport" />
-<section class="container" id="Categorization"><!-- Instructions (collapsible) -->
+<section class="container" id="Categorization"><!-- Instructions (collapsible) --><script>
+
+</script>
 <div class="row">
 <div class="col-xs-12 col-md-12">
 <div class="panel panel-primary"><!-- WARNING: the ids "collapseTrigger" and "instructionBody" are being used to enable expand/collapse feature --><a class="panel-heading" href="javascript:void(0);" id="collapseTrigger"><strong>Categorization Instructions</strong> <span class="collapse-text">(Click to expand)</span> </a>
@@ -15,12 +17,30 @@
 <h3 class="form-group"><!-- Question for the Worker --><label class="group-label">Which object on the right is more similar to the one shown above?:</label> <!-- Input from the Worker --></h3>
 </div>
 <script>
+
+window.onload = hideSubmit;
+
+
+
 function getName(id)
 {
    var elem = document.getElementById(id).value;
    elem = elem.substring(0,elem.indexOf('.'));
    document.write(elem);
 }
+
+function clickSubmit()
+{
+    document.getElementById('submitButton').click();
+}
+
+function hideSubmit() {
+
+    document.getElementById('submitButton').style.visibility='hidden';
+
+}
+
+
 </script><input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" />
 <div style="
       top: 530;
@@ -30,9 +50,9 @@ function getName(id)
       visibility: show;"><script>getName("img2")</script></div>
 
 <div class="btn-group-horizontal" data-toggle="buttons" id="CategoryInputs">
-<div class="col-lg-3"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"><input id="category1" name="categories" required="" type="radio" value="Left" /><script>getName("img1")</script> </label></div>
+<div class="col-lg-3"><img alt="image1" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="getName(" /><script>getName("img1")</script> </label></div>
 
-<div class="col-lg-3"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"> <input id="category2" name="categories" required="" type="radio" value="Right" /><script>getName("img3")</script> </label> <!-- Add more inputs by copy pasting the "label" container and incrementing/changing the "id" attribute on the "input" field to always be unique. Make sure the "value" attribute has the correct value that you want recorded as a response. --></div>
+<div class="col-lg-3"><img alt="image3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url3}" style="width: 300px; height: 300px;" /> <label class="btn btn-default"> <input id="category2" name="categories" onclick="clickSubmit()" required="" type="radio" value="getName(" /><script>getName("img3")</script> </label> <!-- Add more inputs by copy pasting the "label" container and incrementing/changing the "id" attribute on the "input" field to always be unique. Make sure the "value" attribute has the correct value that you want recorded as a response. --></div>
 </div>
 </div>
 </div>
