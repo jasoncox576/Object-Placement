@@ -26,7 +26,7 @@ def find_bad_hypernyms(to_exclude, synset):
 
 
 
-while physical_objects < 55:
+while physical_objects < 100:
     chosen_object = random.choice(all_synsets)
     if str(chosen_object.lowest_common_hypernyms(physical_object)[0]) == str(physical_object):
         # Additional filtering
@@ -39,13 +39,15 @@ while physical_objects < 55:
         # This may or may not be a good idea as a lot of the objects end up being
         # random plants such as 'missouri goldenrod', but then again you could
         # conceivably have something useful like 'house plant'
-        to_exclude.append(wn.synsets('living_thing')[0])
+
+        #to_exclude.append(wn.synsets('living_thing')[0])
 
         to_exclude.append(wn.synsets('structure')[0])
 
         to_exclude.append(wn.synsets('land')[3])
         #If we want fruit, we should not exclude that.
-        to_exclude.append(wn.synsets('plant_part')[0])
+
+        #to_exclude.append(wn.synsets('plant_part')[0])
 
         to_exclude.append(wn.synsets('particle')[0])
         to_exclude.append(wn.synsets('particle')[1])
@@ -56,11 +58,17 @@ while physical_objects < 55:
 
         if find_bad_hypernyms(to_exclude, chosen_object):
             continue
+        
 
-        object_synsets.append(str(chosen_object)) 
-        write_file.write(str(chosen_object) + '\n')
-        print(chosen_object)
+        proper_string = str(chosen_object)[8:-2]
+        
+        object_synsets.append(proper_string) 
+        write_file.write(proper_string + '\n')
+        print(proper_string)
         physical_objects += 1
 
 write_file.close()
 
+
+for obj in object_synsets:
+    print(wn.synset(obj).definition())
