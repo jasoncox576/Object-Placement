@@ -93,14 +93,7 @@ function clickSubmit()
 <div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Left" /> Here </label><br />
 <b><script> getName("img4"); </script></b></div>
 </div>
-
-<div class="card">
-<div class="card-image"><img class="img-responsive center-block" id="img5" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url5}" style="width: 200px; height: 200px; border-width: 5px; border-style: solid;" /></div>
-
-<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Left" /> Here </label><br />
-<b><script> getName("img5"); </script></b></div>
 <!-- <input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" /> <input id="img4" type="hidden" value="${image_url4}" /> <input id="img5" type="hidden" value="${image_url5}" />--></div>
-</div>
 </div>
 </div>
 </div>
