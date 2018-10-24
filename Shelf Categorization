@@ -76,21 +76,21 @@ function clickSubmit()
 <div class="card">
 <div class="card-image"><img alt="img1" class="img-responsive" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url}" style="width: 200px; height: 200px; border-width: 5px; border-style: solid;" /></div>
 
-<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Left" /> Here</label><br />
+<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Top" /> Here</label><br />
 <b><script> getName("img1"); </script></b></div>
 </div>
 
 <div class="card">
 <div class="card-image"><img alt="img3" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url2}" style="width: 200px; height: 200px; border-width: 5px; border-style: solid;" /></div>
 
-<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Left" /> Here </label><br />
+<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Middle" /> Here </label><br />
 <b><script> getName("img2"); </script></b></div>
 </div>
 
 <div class="card">
 <div class="card-image"><img alt="img4" class="img-responsive center-block" src="https://s3.amazonaws.com/object-images-utaustin/Objects/${image_url4}" style="width: 200px; height: 200px; border-width: 5px; border-style: solid;" /></div>
 
-<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Left" /> Here </label><br />
+<div class="card-content"><label class="btn btn-default"><input id="category1" name="categories" onclick="clickSubmit()" required="" type="radio" value="Bottom" /> Here </label><br />
 <b><script> getName("img4"); </script></b></div>
 </div>
 <!-- <input id="img1" type="hidden" value="${image_url}" /> <input id="img2" type="hidden" value="${image_url2}" /> <input id="img3" type="hidden" value="${image_url3}" /> <input id="img4" type="hidden" value="${image_url4}" /> <input id="img5" type="hidden" value="${image_url5}" />--></div>
