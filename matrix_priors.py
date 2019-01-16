@@ -109,7 +109,7 @@ def fill_matrix_word2vec(rows_dict):
 
             prior_matrix[row][col] = token1.similarity(token2) 
 
-    
+    return prior_matrix    
 
 
 

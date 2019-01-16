@@ -16,7 +16,7 @@ total_row_counter = 0
 embedding_correct_counter = 0
 wordnet_correct_counter = 0
 matrix_correct_counter = 0
-
+word2vec_matrix_correct_counter = 0
 
 def get_synset_and_strip(word):
     
@@ -30,9 +30,31 @@ def get_synset_and_strip(word):
     return (synset, word)
 
 
+def roll_probs(matrix_prob_vector):
+
+        #This should be [0,1,2] by default but will generalize to n dimensions
+        possible_indices = [*range(len(matrix_prob_vector))]
+
+        while len(possible_indices) > 1:
+            for prob in matrix_prob_vector:
+                roll = (random.randint(0, 100))/100
+                print(str(roll) + " " + str(prob))
+                if roll > prob:
+                    #that object is now out of the running,
+                    #we won't use it for placement
+                    del_index = matrix_prob_vector.index(prob)
+                    del matrix_prob_vector[del_index]
+                    del possible_indices[del_index]
+                    break 
+
+        selected_index = possible_indices[0]
+        return selected_index
+
+
 
 filename = "dummy_results.csv"
 prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
+word2vec_matrix = matrix_priors.fill_matrix_word2vec(prior_matrix)
 
 
 
@@ -89,6 +111,11 @@ with open(filename) as csvfile:
         matrix_prob_vector.append(prior_matrix[rows_dict.get(primary)][rows_dict.get(row_result[2])])
         matrix_prob_vector.append(prior_matrix[rows_dict.get(primary)][rows_dict.get(row_result[3])])
 
+        word2vec_matrix_prob_vector = []
+        word2vec_matrix_prob_vector.append(word2vec_matrix[rows_dict.get(primary)][rows_dict.get(row_result[1])])
+        word2vec_matrix_prob_vector.append(word2vec_matrix[rows_dict.get(primary)][rows_dict.get(row_result[2])])
+        word2vec_matrix_prob_vector.append(word2vec_matrix[rows_dict.get(primary)][rows_dict.get(row_result[3])])
+
         if np.argmax(embedding_sim_vector) == answer:
             embedding_correct_counter += 1
         if np.argmax(wordnet_sim_vector) == answer:
@@ -102,24 +129,13 @@ with open(filename) as csvfile:
         # deterministic, so it is slightly more complicated.
         # We must roll for probabilities.
         
-        #This should be [0,1,2] by default but will generalize to n dimensions
-        possible_indices = [*range(len(matrix_prob_vector))]
-
-        while len(possible_indices) > 1:
-            for prob in matrix_prob_vector:
-                roll = (random.randint(0, 100))/100
-                print(str(roll) + " " + str(prob))
-                if roll > prob:
-                    #that object is now out of the running,
-                    #we won't use it for placement
-                    del_index = matrix_prob_vector.index(prob)
-                    del matrix_prob_vector[del_index]
-                    del possible_indices[del_index]
-                    break 
-        
-        selected_index = possible_indices[0]
+        selected_index = roll_probs(matrix_prob_vector)
         if selected_index == answer:
             matrix_correct_counter += 1
+
+        selected_index_w2v = roll_probs(word2vec_matrix_prob_vector)
+        if selected_index_w2v == answer:
+            word2vec_matrix_correct_counter += 1
          
 
         total_row_counter += 1
@@ -133,3 +149,5 @@ print(str(wordnet_correct_counter / total_row_counter))
 print("\nTotal accuracy of matrix is:")
 print(str(matrix_correct_counter / total_row_counter))
 
+print("\nTotal accuracy of word2vec matrix is:")
+print(str(word2vec_matrix_correct_counter / total_row_counter))
