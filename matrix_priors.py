@@ -1,10 +1,11 @@
 import csv
+from nltk.corpus import wordnet as wn
 import spacy
 import numpy as np
 
-print("Loading SPACY...")
+print("Loading SPACY in matrix_priors")
 nlp = spacy.load('en_core_web_lg')
-print("Loading complete")
+print("Loading complete (matrix_priors)")
 
 rows_dict = {}
 PRIOR_MATRIX = []
@@ -15,6 +16,25 @@ def strip(word):
         word = word[:-2]
     
     return word
+
+
+
+
+
+
+def get_synset_and_strip(word):
+        
+    synset_num = 0 
+
+    if word[-2] == '_':
+        synset_num = int(word[-1]) 
+        word = word[:-2]
+    
+    synset = wn.synsets(word.replace(" ", "_"))[synset_num]    
+    return (synset, word)
+
+
+
 
 def fetch_sim(w1, w2, prior_matrix):
     row = rows_dict.get(w1)
@@ -48,7 +68,6 @@ def fetch_sim(w1, w2, prior_matrix):
             if sim >= max_sim:
                 max_sim = sim 
                 next_closest_word = word 
-
         print(w2, next_closest_word)
         col = rows_dict.get(next_closest_word)
    
@@ -88,6 +107,57 @@ def fill_matrix(filename):
 
         return (prior_matrix, rows_dict)
 
+def fill_empirical_matrix(filename, rows_dict):
+
+        probs_matrix = np.identity(len(rows_dict))
+        with open(filename) as csvfile:
+            #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+            reader = csv.reader(csvfile)
+            for row in reader:
+                if reader.line_num == 1:
+                    continue
+
+                row_result = row[27:32]
+
+                primary = row_result[0]
+
+                primary_syn, primary_token = get_synset_and_strip(primary) 
+                primary_token = nlp(primary_token)
+
+                answer = row_result[4]
+
+                synset1, token1 = get_synset_and_strip(row_result[1])
+                token1 = nlp(token1)
+
+                synset2, token2 = get_synset_and_strip(row_result[2])
+                token2 = nlp(token2)
+
+                synset3, token3 = get_synset_and_strip(row_result[3])
+                token3 = nlp(token3)
+
+                object_vector = [row_result[1], row_result[2], row_result[3]]
+                
+
+                embedding_sim_vector = []
+                embedding_sim_vector.append(primary_token.similarity(token1))
+                embedding_sim_vector.append(primary_token.similarity(token2))
+                embedding_sim_vector.append(primary_token.similarity(token3))
+
+                predicted_object = object_vector[np.argmax(embedding_sim_vector)]     
+                
+                    
+                probs_matrix[rows_dict.get(primary)][rows_dict.get(predicted_object)] += 1 
+                probs_matrix[rows_dict.get(primary)][rows_dict.get(primary)] += 1
+        
+        print("PRE_DIVIDE: ", probs_matrix)
+        for row in range(len(probs_matrix)):
+            divide_val = probs_matrix[row][row]-1
+            probs_matrix[row][row] -= 1
+            if divide_val != 0:
+                probs_matrix[row] = [x / divide_val for x in probs_matrix[row]]
+        
+        return probs_matrix         
+
 
 def fill_matrix_word2vec(rows_dict):
 
@@ -100,24 +170,26 @@ def fill_matrix_word2vec(rows_dict):
     # filled in anyway as 1
     prior_matrix = np.identity(len(rows_dict))
     for word1 in rows_dict:
-        for word2 in rows_dict:
-            row = rows_dict.get(word1)
-            col = rows_dict.get(word2)
+        for word2 in rows_dict: 
+        
+            word1_ind = rows_dict[word1]
+            word2_ind = rows_dict[word2]
+
 
             token1 = nlp(strip(word1)) 
             token2 = nlp(strip(word2))
-
-            prior_matrix[row][col] = token1.similarity(token2) 
+                
+            sim = token1.similarity(token2)
+            prior_matrix[word1_ind][word2_ind] = sim 
 
     return prior_matrix    
 
 
 
-PRIOR_MATRIX, rows_dict = fill_matrix('dummy_priors.csv')
-print(rows_dict)
-print(str(fetch_sim('gum', 'nut', PRIOR_MATRIX)))
-print(str(fetch_sim('oatmeal', 'coffee', PRIOR_MATRIX)))
-
+#PRIOR_MATRIX, rows_dict = fill_matrix('dummy_priors.csv')
+#word2vec_matrix = fill_matrix_word2vec(rows_dict)
+#print(rows_dict)
+#print(word2vec_matrix)
 
 
 
