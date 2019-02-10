@@ -107,55 +107,50 @@ def fill_matrix(filename):
 
         return (prior_matrix, rows_dict)
 
-def fill_empirical_matrix(filename, rows_dict):
+def fill_empirical_matrix(X, y, train, rows_dict):
 
         probs_matrix = np.identity(len(rows_dict))
-        with open(filename) as csvfile:
-            #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-            reader = csv.reader(csvfile)
-            for row in reader:
-                if reader.line_num == 1:
-                    continue
 
-                row_result = row[27:32]
 
-                primary = row_result[0]
+        for case in train:
 
-                primary_syn, primary_token = get_synset_and_strip(primary) 
-                primary_token = nlp(primary_token)
+            primary = X[case][0]
+            primary_syn, primary_token = get_synset_and_strip(primary) 
+            primary_token = nlp(primary_token)
 
-                answer = row_result[4]
 
-                synset1, token1 = get_synset_and_strip(row_result[1])
-                token1 = nlp(token1)
+            _, token1 = get_synset_and_strip(X[case][1])
+            token1 = nlp(token1)
 
-                synset2, token2 = get_synset_and_strip(row_result[2])
-                token2 = nlp(token2)
+            _, token2 = get_synset_and_strip(X[case][2])
+            token2 = nlp(token2)
 
-                synset3, token3 = get_synset_and_strip(row_result[3])
-                token3 = nlp(token3)
+            _, token3 = get_synset_and_strip(X[case][3])
+            token3 = nlp(token3)
 
-                object_vector = [row_result[1], row_result[2], row_result[3]]
-                
 
-                embedding_sim_vector = []
-                embedding_sim_vector.append(primary_token.similarity(token1))
-                embedding_sim_vector.append(primary_token.similarity(token2))
-                embedding_sim_vector.append(primary_token.similarity(token3))
-
-                predicted_object = object_vector[np.argmax(embedding_sim_vector)]     
-                
+            object_vector = [X[case][1], X[case][2], X[case][3]]
                     
-                probs_matrix[rows_dict.get(primary)][rows_dict.get(predicted_object)] += 1 
-                probs_matrix[rows_dict.get(primary)][rows_dict.get(primary)] += 1
+
+            embedding_sim_vector = []
+            embedding_sim_vector.append(primary_token.similarity(token1))
+            embedding_sim_vector.append(primary_token.similarity(token2))
+            embedding_sim_vector.append(primary_token.similarity(token3))
+
+            predicted_object = object_vector[np.argmax(embedding_sim_vector)]     
+                    
+                        
+            probs_matrix[rows_dict.get(primary)][rows_dict.get(predicted_object)] += 1 
+            probs_matrix[rows_dict.get(primary)][rows_dict.get(primary)] += 1
         
-        print("PRE_DIVIDE: ", probs_matrix)
+        #print("PRE_DIVIDE: ", probs_matrix)
         for row in range(len(probs_matrix)):
             divide_val = probs_matrix[row][row]-1
             probs_matrix[row][row] -= 1
             if divide_val != 0:
                 probs_matrix[row] = [x / divide_val for x in probs_matrix[row]]
         
+        #print("POST_DIVIDE: ", probs_matrix)
         return probs_matrix         
 
 

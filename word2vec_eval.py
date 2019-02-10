@@ -14,12 +14,7 @@ print("Loading complete: eval beginning")
 #important columns:
 #27-31 starting from 0
 
-total_row_counter = 0
-embedding_correct_counter = 0
-wordnet_correct_counter = 0
 matrix_correct_counter = 0
-word2vec_matrix_correct_counter = 0
-empirical_matrix_correct_counter = 0
 
 random_correct_counter = 0
 
@@ -36,11 +31,31 @@ filename = "dummy_results.csv"
 print("trying to get prior matrix")
 prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
 print(rows_dict)
-empirical_matrix = matrix_priors.fill_empirical_matrix("dummy_results.csv", rows_dict)
-print("GOT EMPIRICAL MATRIX:", empirical_matrix)
 word2vec_matrix = matrix_priors.fill_matrix_word2vec(rows_dict)
 
-print("WORD2VEC MATRIX:", word2vec_matrix)
+#print("WORD2VEC MATRIX:", word2vec_matrix)
+
+
+def instances_disagree(X, y):
+   
+    used_indices = []
+    
+    for x1 in range(len(X)):
+        if x1 in used_indices: continue
+        class_disagreements = [(X[x1], y[x1])]
+        for x2 in range(len(X)):
+            if (x2 in used_indices) or (x1 == x2): continue
+            if (X[x1] == X[x2]) and (y[x1] != y[x2]):
+                class_disagreements.append((X[x2], y[x2]))
+                used_indices.append(x2)
+        used_indices.append(x1)
+        print("CLASS DISAGREEMENTS----------------")
+        print(class_disagreements)
+    
+
+
+
+
 
 def get_train_test():
 
@@ -56,114 +71,73 @@ def get_train_test():
                     continue
 
                 row_result = row[27:32]
-                
-                #for i in range(len(row_result)-1):
-                    #row_result[i] = row_result[i][:-6] 
 
-                primary = row_result[0]
-                #print("PRIMARY: " + primary)
 
-                primary_syn, primary_token = matrix_priors.get_synset_and_strip(primary) 
-                primary_token = nlp(primary_token)
+                answer_label = row_result[4]
+                answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
 
-                answer = row_result[4]
-
-                synset1, token1 = matrix_priors.get_synset_and_strip(row_result[1])
-                token1 = nlp(token1)
-
-                synset2, token2 = matrix_priors.get_synset_and_strip(row_result[2])
-                token2 = nlp(token2)
-
-                synset3, token3 = matrix_priors.get_synset_and_strip(row_result[3])
-                token3 = nlp(token3)
-
-            
-
-                if answer == "Top":
-                    answer = 0
-                elif answer == "Middle":
-                    answer = 1
-                elif answer == "Bottom":
-                    answer = 2
-
-                embedding_sim_vector = []
-                embedding_sim_vector.append(primary_token.similarity(token1))
-                embedding_sim_vector.append(primary_token.similarity(token2))
-                embedding_sim_vector.append(primary_token.similarity(token3))
-
-                wordnet_sim_vector = []
-                wordnet_sim_vector.append(primary_syn.path_similarity(synset1))
-                wordnet_sim_vector.append(primary_syn.path_similarity(synset2))
-                wordnet_sim_vector.append(primary_syn.path_similarity(synset3))
-
-               
-                matrix_prob_vector = [] 
-                matrix_prob_vector.append(prior_matrix[rows_dict.get(primary)][rows_dict.get(row_result[1])])
-                matrix_prob_vector.append(prior_matrix[rows_dict.get(primary)][rows_dict.get(row_result[2])])
-                matrix_prob_vector.append(prior_matrix[rows_dict.get(primary)][rows_dict.get(row_result[3])])
-                
-                word2vec_matrix_prob_vector = []
-                word2vec_matrix_prob_vector.append(word2vec_matrix[rows_dict.get(primary)][rows_dict.get(row_result[1])])
-                word2vec_matrix_prob_vector.append(word2vec_matrix[rows_dict.get(primary)][rows_dict.get(row_result[2])])
-                word2vec_matrix_prob_vector.append(word2vec_matrix[rows_dict.get(primary)][rows_dict.get(row_result[3])])
-
-                empirical_matrix_prob_vector = []
-                empirical_matrix_prob_vector.append(empirical_matrix[rows_dict.get(primary)][rows_dict.get(row_result[1])])
-                empirical_matrix_prob_vector.append(empirical_matrix[rows_dict.get(primary)][rows_dict.get(row_result[2])])
-                empirical_matrix_prob_vector.append(empirical_matrix[rows_dict.get(primary)][rows_dict.get(row_result[3])])
-            
-                X.append([row_result[4], row_result[1], row_result[2], row_result[3]])
+                X.append([row_result[0], row_result[1], row_result[2], row_result[3]])
                 #Fetch the answer to the most recent instance
-                y.append(X[-1][answer+1])
-
-                if np.argmax(embedding_sim_vector) == answer:
-                    embedding_correct_counter += 1
-                if np.argmax(wordnet_sim_vector) == answer:
-                    wordnet_correct_counter += 1
-                if np.argmax(matrix_prob_vector) == answer:
-                    matrix_correct_counter += 1
+                y.append(X[-1][answer])
                 
-                if np.argmax(empirical_matrix_prob_vector) == answer:
-                    empirical_matrix_correct_counter += 1
-
-
-                # Computing the choice for the prob matrix isn't
-                # deterministic, so it is slightly more complicated.
-                # We must roll for probabilities.
-                
-                """
-                selected_index = roll_probs(matrix_prob_vector)
-                if selected_index == answer:
-                    matrix_correct_counter += 1
-                """
-
-                selected_index_w2v = roll_probs(word2vec_matrix_prob_vector)
-                if selected_index_w2v == answer:
-                    word2vec_matrix_correct_counter += 1
-
-                """
-                selected_index_empirical = roll_probs(empirical_matrix_prob_vector)
-                if selected_index_empirical == answer:
-                    empirical_matrix_correct_counter += 1 
-                """
-
-                total_row_counter += 1
-
+        
 
         skf = StratifiedKFold(n_splits=5, shuffle=True)
         print(rows_dict)
+        y_numerical = y[:]
         for index, word in enumerate(y):
             row = rows_dict[word]
-            y[index] = row 
-
-
-        print(len(X))
-        print(y)
-        for train, test in skf.split(X, y):
-            print("TRAIN", train)
-            print("TEST", test)
+            y_numerical[index] = row 
+        """
+        for train, test in skf.split(X, y_numerical):
+            print(train, test)
+        """
         
-        return X, y, skf.split(X, y)
+        return X, y, skf.split(X, y_numerical)
+
+def evaluate_empirical(matrix, X, y, test, rows_dict):
+    
+
+    total_correct = 0
+
+    for instance in test:
+
+        X_inst = X[instance]
+        
+        sim_vector = []
+
+        
+
+
+        primary = rows_dict[X_inst[0]]
+        w_1 = rows_dict[X_inst[1]]
+        w_2 = rows_dict[X_inst[2]]
+        w_3 = rows_dict[X_inst[3]]
+
+        sim_vector.append(matrix[primary][w_1])
+        sim_vector.append(matrix[primary][w_2])
+        sim_vector.append(matrix[primary][w_3])
+
+        selected_index = roll_probs(sim_vector)
+
+        if X_inst[selected_index+1] == y[instance]:
+            total_correct += 1
+
+    return total_correct / len(test)
+
+
+def eval_random(X, y, test):
+
+    total_correct = 0
+
+    for instance in test:
+        
+        X_inst = X[instance]
+        if random.choice(X_inst[1:]) == y[instance]:
+            total_correct += 1
+    
+    return total_correct / len(test)
+
 
 
 def evaluate_word2vec_wordnet(X, y, test, rows_dict):
@@ -172,7 +146,7 @@ def evaluate_word2vec_wordnet(X, y, test, rows_dict):
     # Run this as many times as you want, average the accuracy.
 
     total_correct_w2v = 0
-    total_corect_wordnet = 0
+    total_correct_wordnet = 0
     
     for case in test:
 
@@ -199,35 +173,112 @@ def evaluate_word2vec_wordnet(X, y, test, rows_dict):
         embedding_sim_vector.append(primary_token.similarity(c_token))
 
         wordnet_sim_vector = []
-        wordnet_sim_vector.append(
+        wordnet_sim_vector.append(primary_syn.path_similarity(a_syn))
+        wordnet_sim_vector.append(primary_syn.path_similarity(b_syn))
+        wordnet_sim_vector.append(primary_syn.path_similarity(c_syn))
     
         if(np.argmax(embedding_sim_vector)+1 == X[case].index(y[case])):
-            total_correct += 1
+            total_correct_w2v += 1
+        if(np.argmax(wordnet_sim_vector)+1 == X[case].index(y[case])):
+            total_correct_wordnet += 1
 
-    return total_correct / len(X)
+    return (total_correct_w2v/len(test), total_correct_wordnet/len(test))
 
-def evaluate_wordnet(X, y, test, rows_dict):
+
+if __name__=="__main__":
+
+    X, y, split = get_train_test() 
     
-    total_correct = 0
+    word2vec_acc = 0
+    wordnet_acc = 0
+    empirical_acc = 0
+    random_acc = 0
 
-    for case in test:
+    train = []
+    test = []
+    
+    for train_i, test_i in split:
+        train.append(train_i)
+        test.append(test_i)
         
-        primary = X[case][0]
-        
 
 
 
-print("Total accuracy of word2vec is:")
-print(str(embedding_correct_counter / total_row_counter))
 
-print("\nTotal accuracy of wordnet is:")
-print(str(wordnet_correct_counter / total_row_counter))
 
-print("\nTotal accuracy of matrix is:")
-print(str(matrix_correct_counter / total_row_counter))
 
-print("\nTotal accuracy of word2vec matrix is:")
-print(str(word2vec_matrix_correct_counter / total_row_counter)) 
 
-print("\nTotal accuracy of empirical matrix is:")
-print(str(empirical_matrix_correct_counter / total_row_counter))
+
+    for test_num in range(len(test)):
+       next_word2vec_acc, next_wordnet_acc = evaluate_word2vec_wordnet(X, y, test[test_num], rows_dict) 
+       next_random_acc = eval_random(X, y, test[test_num])
+
+       print("next word2vec acc: ", next_word2vec_acc)
+       print("next wordnet acc: ", next_wordnet_acc)
+       print("next random acc: ", next_random_acc)
+       word2vec_acc += next_word2vec_acc
+       wordnet_acc += next_wordnet_acc
+       random_acc += next_random_acc
+   
+    word2vec_acc /= len(test)
+    wordnet_acc /= len(test)
+    random_acc /= len(test)
+       
+
+    for test_num in range(len(test)):
+        empirical_matrix = matrix_priors.fill_empirical_matrix(X, y, train[test_num], rows_dict)
+
+        next_empirical_acc = evaluate_empirical(empirical_matrix, X, y, test[test_num], rows_dict)
+        print("next empirical acc: ", next_empirical_acc)
+        empirical_acc += next_empirical_acc
+    empirical_acc /= len(test)
+
+
+    
+
+
+
+
+
+    print("Averaged accuracy of word2vec is:")
+    print(str(word2vec_acc))
+
+    print("Averaged accuracy of wordnet is:")
+    print(str(wordnet_acc))
+
+    print("Averaged accuracy of empirical is:")
+    print(str(empirical_acc))
+    
+
+    print("Averaged accuracy of random guessing is:")
+    print(str(random_acc))
+    """
+    print("\nTotal accuracy of matrix is:")
+    print(str(matrix_correct_counter / total_row_counter))
+
+    print("\nTotal accuracy of word2vec matrix is:")
+    print(str(word2vec_matrix_correct_counter / total_row_counter)) 
+
+    print("\nTotal accuracy of empirical matrix is:")
+    print(str(empirical_matrix_correct_counter / total_row_counter))
+    """
+
+
+
+
+    print("================================================")
+    print("Looking at disagreeance in data")
+
+    instances_disagree(X, y)
+    
+
+
+
+
+
+
+
+
+
+
+
