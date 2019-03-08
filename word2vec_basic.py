@@ -27,6 +27,8 @@ import sys
 from tempfile import gettempdir
 import zipfile
 
+import word2vec_eval
+
 import numpy as np
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -37,62 +39,40 @@ from gensim.models.phrases import Phrases, Phraser
 from spacy.lang.en.stop_words import STOP_WORDS
 import re
 
-#Current work towards extracting bigram phrases from data below
-# E.G. Data file contains 'new','york', but we want 'new_york'
-
-"""
-
-def get_sentences(input_file_pointer):
-    while True:
-        line = input_file_pointer.readline()
-        if not line:
-            break
-        yield line
-
-def clean_sentence(sentence):
-    sentence = sentence.lower().strip()
-    sentence = re.sub(r'[^a-z0-9\s]', '', sentence)
-    return re.sub(r'\s{2,}', ' ', sentence)
-
-def tokenize(sentence):
-    return [token for token in sentence.split() if token not in STOP_WORDS]
-    #return [token for token in sentence.split()]
-
-def build_phrases(sentences):
-    phrases = Phrases(sentences,
-                      min_count=1,
-                      #threshold=,
-                      delimiter=b'-',
-                      progress_per=1000)
-    return Phraser(phrases)
-
-def sentence_to_bi_grams(phrases_model, sentence):
-    return ' '.join(phrases_model[sentence])
-
-
-def sentences_to_bi_grams(n_grams, input_file_name, output_file_name):
-    with open(input_file_name, 'r') as input_file_pointer:
-        with open(output_file_name, 'w+') as out_file:
-            for sentence in get_sentences(input_file_pointer):
-                cleaned_sentence = clean_sentence(sentence)
-                tokenized_sentence = tokenize(cleaned_sentence)
-                print(tokenized_sentence)
-                parsed_sentence = sentence_to_bi_grams(n_grams, tokenized_sentence)
-                print(parsed_sentence)
-                out_file.write(parsed_sentence + '\n')
-
-
-
-with open('text8', 'r') as filename:
-
-    sentences = get_sentences(filename)
-    phraser = build_phrases(sentences)
-    sentences_to_bi_grams(phraser, 'text8', 'modified_text') 
-
-"""
 
 
 data_index = 0
+train_batch = 0
+
+X, y, split = word2vec_eval.get_train_test()
+train = []
+test = []
+
+global_inputs = []
+global_labels = []
+
+for train_i, test_i in split:
+    train.append(train_i)
+    test.append(test_i)
+
+for train_set in train:
+    set_inputs = []
+    set_labels = []
+    for case in train_set:
+        set_inputs.append(X[case][0])
+        set_inputs[-1] = set_inputs[-1].replace(' ', '_') 
+        set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
+
+        set_labels.append(y[case])
+        set_labels[-1] = set_labels[-1].replace(' ', '_') 
+        set_labels[-1] = re.sub('_\d', '', set_labels[-1])
+
+    print(set_inputs)
+    global_inputs.append(set_inputs)
+    global_labels.append(set_labels)
+    
+print("LENGTH OF INPUTS: " + str(len(global_inputs)))
+print(global_inputs[0])
 
 
 def word2vec_basic(log_dir):
@@ -120,7 +100,8 @@ def word2vec_basic(log_dir):
                       '. Can you get to it with a browser?')
     return local_filename
 
-  filename = maybe_download('text8.zip', 31344016)
+  #filename = maybe_download('text8.zip', 31344016)
+  filename = 'modified_text'
 
   # Read the data into a list of strings.
   def read_data(filename):
@@ -129,11 +110,18 @@ def word2vec_basic(log_dir):
       data = tf.compat.as_str(f.read(f.namelist()[0])).split()
     return data
 
-  vocabulary = read_data(filename)
+  def read_data_nonzip(filename):
+    with open(filename, 'r') as f:
+      data = f.read().split()
+    return data
+
+  #vocabulary = read_data(filename)
+  vocabulary = read_data_nonzip(filename)
+  
   print('Data size', len(vocabulary))
 
   # Step 2: Build the dictionary and replace rare words with UNK token.
-  vocabulary_size = 50000
+  vocabulary_size = 200000
 
   def build_dataset(words, n_words):
     """Process raw inputs into a dataset."""
@@ -161,10 +149,6 @@ def word2vec_basic(log_dir):
   # reverse_dictionary - maps codes(integers) to words(strings)
   data, count, unused_dictionary, reverse_dictionary = build_dataset(
       vocabulary, vocabulary_size)
-  print("===================================")
-  for elem in range(len(reverse_dictionary)):
-      print(reverse_dictionary.get(elem))
-  print("=================================")
 
 
   del vocabulary  # Hint to reduce memory.
@@ -200,14 +184,29 @@ def word2vec_basic(log_dir):
     data_index = (data_index + len(data) - span) % len(data)
     return batch, labels
 
-  batch, labels = generate_batch(batch_size=8, num_skips=2, skip_window=1)
-  for i in range(8):
-    print(batch[i], reverse_dictionary[batch[i]], '->', labels[i, 0],
-          reverse_dictionary[labels[i, 0]])
+
+
+  #batch, labels = generate_batch(batch_size=8, num_skips=2, skip_window=1)
+  batch_inputs, batch_labels = global_inputs[train_batch], global_labels[train_batch]
+  batch_labels = np.transpose(batch_labels)
+  print("TRANSPOSED")
+  #print(len(batch), len(labels))
+  for i in range(len(batch_inputs)):
+      batch_inputs[i] = unused_dictionary.get(batch_inputs[i])
+      batch_labels[i] = unused_dictionary.get(batch_labels[i])
+
+
+  #np.reshape(batch_labels, 1, len(batch_labels))
+  #for i in range(8):
+    #print(batch[i], reverse_dictionary[batch[i]], '->', labels[i, 0],
+          #reverse_dictionary[labels[i, 0]])
+    #print(labels[i][0])
 
   # Step 4: Build and train a skip-gram model.
 
-  batch_size = 128
+  #batch_size = 128
+  #batch_size = len(global_inputs[0])
+  batch_size = 288
   embedding_size = 128  # Dimension of the embedding vector.
   skip_window = 1  # How many words to consider left and right.
   num_skips = 2  # How many times to reuse an input to generate a label.
@@ -305,17 +304,16 @@ def word2vec_basic(log_dir):
     init.run()
     print('Initialized')
 
-    """
     saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
     print("MODEL RESTORED")
-    """
-
 
 
     average_loss = 0
+    print(len(global_inputs[0]))
     for step in xrange(num_steps):
-      batch_inputs, batch_labels = generate_batch(batch_size, num_skips,
-                                                  skip_window)
+      batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window)
+      #print(batch_inputs)
+      #print(batch_labels)
       feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
       # Define metadata variable.
