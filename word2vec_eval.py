@@ -27,13 +27,52 @@ def roll_probs(matrix_prob_vector):
         return selected_index
 
 
-filename = "dummy_results.csv"
+filename = "official_results.csv"
 print("trying to get prior matrix")
-prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
-print(rows_dict)
-word2vec_matrix = matrix_priors.fill_matrix_word2vec(rows_dict)
+#prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
+#print(rows_dict)
+#word2vec_matrix = matrix_priors.fill_matrix_word2vec(rows_dict)
 
 #print("WORD2VEC MATRIX:", word2vec_matrix)
+
+
+def verify_data():
+
+    """
+    Data is 'bad' if object A is not placed with itself
+    when there is an opportunity to do so
+
+    mistakes is the number of times this occurs,
+    total_sames is the number of times an object is already
+    on the shelf
+    """
+
+    mistakes = 0
+    total_sames = 0
+
+    with open(filename) as csvfile:
+        #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if reader.line_num == 1:
+                continue
+
+            row_result = row[27:32]
+
+
+            answer_label = row_result[4]
+            answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
+            
+            if row_result[0] in row_result[1:]:
+                if row_result[0] != row_result[answer]:
+                    print("BAD DATA!!")
+                    print(row_result)
+                    print(row_result[0], row_result[answer])
+                    print("====================================")
+                    mistakes += 1
+                total_sames += 1
+
+    return mistakes, total_sames, mistakes/total_sames
 
 
 def instances_disagree(X, y):
@@ -105,9 +144,6 @@ def evaluate_empirical(matrix, X, y, test, rows_dict):
         X_inst = X[instance]
         
         sim_vector = []
-
-        
-
 
         primary = rows_dict[X_inst[0]]
         w_1 = rows_dict[X_inst[1]]
@@ -187,6 +223,10 @@ def evaluate_word2vec_wordnet(X, y, test, rows_dict):
 
 if __name__=="__main__":
 
+    print(verify_data())
+    exit()
+
+
     X, y, split = get_train_test() 
     
     word2vec_acc = 0
@@ -200,14 +240,9 @@ if __name__=="__main__":
     for train_i, test_i in split:
         train.append(train_i)
         test.append(test_i)
-        
 
-
-
-
-
-
-
+    print("TRAIN")
+    print(train)
 
     for test_num in range(len(test)):
        next_word2vec_acc, next_wordnet_acc = evaluate_word2vec_wordnet(X, y, test[test_num], rows_dict) 
@@ -232,13 +267,6 @@ if __name__=="__main__":
         print("next empirical acc: ", next_empirical_acc)
         empirical_acc += next_empirical_acc
     empirical_acc /= len(test)
-
-
-    
-
-
-
-
 
     print("Averaged accuracy of word2vec is:")
     print(str(word2vec_acc))
