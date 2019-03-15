@@ -2,6 +2,7 @@ import csv
 import spacy
 from nltk.corpus import wordnet as wn
 from sklearn.model_selection import StratifiedKFold
+import word2vec_basic
 import numpy as np
 import matrix_priors
 import random
@@ -27,7 +28,7 @@ def roll_probs(matrix_prob_vector):
         return selected_index
 
 
-filename = "official_results.csv"
+filename = "dummy_results.csv"
 print("trying to get prior matrix")
 #prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
 #print(rows_dict)
@@ -174,39 +175,52 @@ def eval_random(X, y, test):
     
     return total_correct / len(test)
 
+def retrain_model(X, y, train):
+
+    train_X = [X[x] for x in train]
+    train_y = [y[x] for x in train]
+
+    final_embeddings, dictionary = word2vec_basic('.log', retraining=True, X=train_X, y=train_y)
+    return final_embeddings, dictionary
 
 
-def evaluate_word2vec_wordnet(X, y, test, rows_dict):
+
+def evaluate_word2vec_wordnet(X, y, test, rows_dict, final_embeddings, dictionary):
 
     # test is a one-dimensional array.
     # Run this as many times as you want, average the accuracy.
 
     total_correct_w2v = 0
     total_correct_wordnet = 0
+
     
     for case in test:
 
         primary = X[case][0] 
 
         primary_syn, primary_token = matrix_priors.get_synset_and_strip(primary)
-        primary_token = nlp(primary_token)
+        primary_embedding = final_embeddings[dictionary.get(primary_token)]
+        #primary_token = nlp(primary_token)
         
         a = X[case][1]
         a_syn, a_token = matrix_priors.get_synset_and_strip(a)
-        a_token = nlp(a_token)
+        a_embedding = final_embeddings[dictionary.get(a_token)]
+        #a_token = nlp(a_token)
 
         b = X[case][2]
         b_syn, b_token = matrix_priors.get_synset_and_strip(b)
-        b_token = nlp(b_token)
+        b_embedding = final_embeddings[dictionary.get(b_token)]
+        #b_token = nlp(b_token)
 
         c = X[case][3]
         c_syn, c_token = matrix_priors.get_synset_and_strip(b)
-        c_token = nlp(c_token)     
+        c_embedding = final_embeddings[dictionary.get(c_token)]
+        #c_token = nlp(c_token)     
          
         embedding_sim_vector = []
-        embedding_sim_vector.append(primary_token.similarity(a_token))
-        embedding_sim_vector.append(primary_token.similarity(b_token))
-        embedding_sim_vector.append(primary_token.similarity(c_token))
+        embedding_sim_vector.append(tf.matmul(primary_embedding, a_embedding, transpose_b=True))
+        embedding_sim_vector.append(tf.matmul(primary_embedding, b_embedding, transpose_b=True))
+        embedding_sim_vector.append(tf.matmul(primary_embedding, c_embedding, transpose_b=True))
 
         wordnet_sim_vector = []
         wordnet_sim_vector.append(primary_syn.path_similarity(a_syn))
@@ -223,8 +237,8 @@ def evaluate_word2vec_wordnet(X, y, test, rows_dict):
 
 if __name__=="__main__":
 
-    print(verify_data())
-    exit()
+    #print(verify_data())
+    #exit()
 
 
     X, y, split = get_train_test() 
@@ -245,7 +259,8 @@ if __name__=="__main__":
     print(train)
 
     for test_num in range(len(test)):
-       next_word2vec_acc, next_wordnet_acc = evaluate_word2vec_wordnet(X, y, test[test_num], rows_dict) 
+       final_embeddings, dictionary = retrain_model(X, y, train[test_num]) 
+       next_word2vec_acc, next_wordnet_acc = evaluate_word2vec_wordnet(X, y, test[test_num], rows_dict, final_embeddings, dictionary) 
        next_random_acc = eval_random(X, y, test[test_num])
 
        print("next word2vec acc: ", next_word2vec_acc)

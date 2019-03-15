@@ -42,23 +42,13 @@ import re
 
 
 data_index = 0
-train_batch = 0
 
-X, y, split = word2vec_eval.get_train_test()
-train = []
-test = []
+def process_inputs(X, y):
 
-global_inputs = []
-global_labels = []
-
-for train_i, test_i in split:
-    train.append(train_i)
-    test.append(test_i)
-
-for train_set in train:
     set_inputs = []
     set_labels = []
-    for case in train_set:
+
+    for case in X:
         set_inputs.append(X[case][0])
         set_inputs[-1] = set_inputs[-1].replace(' ', '_') 
         set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
@@ -67,15 +57,12 @@ for train_set in train:
         set_labels[-1] = set_labels[-1].replace(' ', '_') 
         set_labels[-1] = re.sub('_\d', '', set_labels[-1])
 
-    print(set_inputs)
-    global_inputs.append(set_inputs)
-    global_labels.append(set_labels)
+    return set_inputs, set_labels
+
     
-print("LENGTH OF INPUTS: " + str(len(global_inputs)))
-print(global_inputs[0])
 
 
-def word2vec_basic(log_dir):
+def word2vec_basic(log_dir, retraining=False, X=None, y=None):
   """Example of building, training and visualizing a word2vec model."""
   # Create the directory for TensorBoard variables if there is not.
   if not os.path.exists(log_dir):
@@ -185,28 +172,16 @@ def word2vec_basic(log_dir):
     return batch, labels
 
 
+  for elem in unused_dictionary:
+      print(elem)
 
   #batch, labels = generate_batch(batch_size=8, num_skips=2, skip_window=1)
-  batch_inputs, batch_labels = global_inputs[train_batch], global_labels[train_batch]
-  batch_labels = np.transpose(batch_labels)
-  print("TRANSPOSED")
-  #print(len(batch), len(labels))
-  for i in range(len(batch_inputs)):
-      batch_inputs[i] = unused_dictionary.get(batch_inputs[i])
-      batch_labels[i] = unused_dictionary.get(batch_labels[i])
-
-
-  #np.reshape(batch_labels, 1, len(batch_labels))
-  #for i in range(8):
-    #print(batch[i], reverse_dictionary[batch[i]], '->', labels[i, 0],
-          #reverse_dictionary[labels[i, 0]])
-    #print(labels[i][0])
 
   # Step 4: Build and train a skip-gram model.
 
   #batch_size = 128
   #batch_size = len(global_inputs[0])
-  batch_size = 288
+  batch_size = 278
   embedding_size = 128  # Dimension of the embedding vector.
   skip_window = 1  # How many words to consider left and right.
   num_skips = 2  # How many times to reuse an input to generate a label.
@@ -219,6 +194,7 @@ def word2vec_basic(log_dir):
   valid_size = 16  # Random set of words to evaluate similarity on.
   valid_window = 100  # Only pick dev samples in the head of the distribution.
   valid_examples = np.random.choice(valid_window, valid_size, replace=False)
+  print(valid_examples)
 
   graph = tf.Graph()
 
@@ -292,7 +268,9 @@ def word2vec_basic(log_dir):
     saver = tf.train.Saver()
 
   # Step 5: Begin training.
-  num_steps = 100001
+  if retraining:
+    num_steps = 1
+  else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
@@ -304,16 +282,48 @@ def word2vec_basic(log_dir):
     init.run()
     print('Initialized')
 
-    saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
-    print("MODEL RESTORED")
+    if retraining:
+        saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
+        print("MODEL RESTORED")
 
 
+    print("LEN EMBEDDINGS")
+    print(tf.size(embeddings), tf.size(embeddings[0]))
     average_loss = 0
-    print(len(global_inputs[0]))
+    print(valid_embeddings.eval())
     for step in xrange(num_steps):
-      batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window)
+      #batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window)
       #print(batch_inputs)
       #print(batch_labels)
+      #inputs, labels = global_inputs[train_batch], global_labels[train_batch]
+
+      #batch_labels = np.transpose(batch_labels)
+      #print("TRANSPOSED")
+      #print(len(batch), len(labels))
+      batch_inputs = np.zeros([278])
+      batch_labels = np.zeros([278, 1])
+    
+      if retraining:
+          inputs, labels = process_inputs(X, y)
+          for i in range(len(inputs)):
+              print(unused_dictionary.get(inputs[i]))
+              batch_inputs[i] = unused_dictionary.get(inputs[i])
+              batch_labels[i,0] = unused_dictionary.get(labels[i])
+          print(batch_labels)
+      
+      batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window)
+    
+      #for x in range(batch_size - len(batch_inputs)):
+          #batch_inputs = np.append(batch_inputs, [999999])
+          #batch_labels = np.append(batch_labels, [999999])
+
+      print(np.shape(batch_inputs))
+      #np.reshape(batch_inputs, 278, 1)
+      #np.reshape(batch_labels, 1, 278)
+
+      print(len(batch_inputs))
+      print(len(batch_labels))
+
       feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
       # Define metadata variable.
@@ -342,7 +352,7 @@ def word2vec_basic(log_dir):
         # batches.
         print('Average loss at step ', step, ': ', average_loss)
         average_loss = 0
-
+      
       # Note that this is expensive (~20% slowdown if computed every 500 steps)
       if step % 10000 == 0:
         sim = similarity.eval()
@@ -356,6 +366,7 @@ def word2vec_basic(log_dir):
             log_str = '%s %s,' % (log_str, close_word)
           print(log_str)
     final_embeddings = normalized_embeddings.eval()
+    print(final_embeddings)
 
     # Write corresponding labels for the embeddings.
     with open(log_dir + '/metadata.tsv', 'w') as f:
@@ -364,57 +375,12 @@ def word2vec_basic(log_dir):
 
     # Save the model for checkpoints.
     saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-
-    # Create a configuration for visualizing embeddings with the labels in
-    # TensorBoard.
-    config = projector.ProjectorConfig()
-    embedding_conf = config.embeddings.add()
-    embedding_conf.tensor_name = embeddings.name
-    embedding_conf.metadata_path = os.path.join(log_dir, 'metadata.tsv')
-    projector.visualize_embeddings(writer, config)
-
-  writer.close()
-
-  # Step 6: Visualize the embeddings.
-
-  # pylint: disable=missing-docstring
-  # Function to draw visualization of distance between embeddings.
-  def plot_with_labels(low_dim_embs, labels, filename):
-    assert low_dim_embs.shape[0] >= len(labels), 'More labels than embeddings'
-    plt.figure(figsize=(18, 18))  # in inches
-    for i, label in enumerate(labels):
-      x, y = low_dim_embs[i, :]
-      plt.scatter(x, y)
-      plt.annotate(
-          label,
-          xy=(x, y),
-          xytext=(5, 2),
-          textcoords='offset points',
-          ha='right',
-          va='bottom')
-
-    plt.savefig(filename)
-
-  try:
-    # pylint: disable=g-import-not-at-top
-    from sklearn.manifold import TSNE
-    import matplotlib.pyplot as plt
-
-    tsne = TSNE(
-        perplexity=30, n_components=2, init='pca', n_iter=5000, method='exact')
-    plot_only = 500
-    low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
-    labels = [reverse_dictionary[i] for i in xrange(plot_only)]
-    plot_with_labels(low_dim_embs, labels, os.path.join(gettempdir(),
-                                                        'tsne.png'))
-
-  except ImportError as ex:
-    print('Please install sklearn, matplotlib, and scipy to show embeddings.')
-    print(ex)
+    return final_embeddings, unused_dictionary
 
 
 # All functionality is run after tf.app.run() (b/122547914). This could be split
 # up but the methods are laid sequentially with their usage for clarity.
+"""
 def main(unused_argv):
   # Give a folder path as an argument with '--log_dir' to save
   # TensorBoard summaries. Default is a log folder in current directory.
@@ -431,3 +397,4 @@ def main(unused_argv):
 
 if __name__ == '__main__':
   tf.app.run()
+"""
