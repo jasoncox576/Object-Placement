@@ -48,7 +48,7 @@ def process_inputs(X, y):
     set_inputs = []
     set_labels = []
 
-    for case in X:
+    for case in range(len(X)):
         set_inputs.append(X[case][0])
         set_inputs[-1] = set_inputs[-1].replace(' ', '_') 
         set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
@@ -56,14 +56,54 @@ def process_inputs(X, y):
         set_labels.append(y[case])
         set_labels[-1] = set_labels[-1].replace(' ', '_') 
         set_labels[-1] = re.sub('_\d', '', set_labels[-1])
-
     return set_inputs, set_labels
 
-    
 
 
-def word2vec_basic(log_dir, retraining=False, X=None, y=None):
+
+def read_data(filename):
+    """Extract the first file enclosed in a zip file as a list of words."""
+    with zipfile.ZipFile(filename) as f:
+      data = tf.compat.as_str(f.read(f.namelist()[0])).split()
+    return data
+
+def read_data_nonzip(filename):
+    with open(filename, 'r') as f:
+      data = f.read().split()
+    return data
+
+
+def build_dataset(words, n_words):
+    """Process raw inputs into a dataset."""
+    count = [['UNK', -1]]
+    count.extend(collections.Counter(words).most_common(n_words - 1))
+    dictionary = dict()
+    for word, _ in count:
+      dictionary[word] = len(dictionary)
+    data = list()
+    unk_count = 0
+    for word in words:
+      index = dictionary.get(word, 0)
+      if index == 0:  # dictionary['UNK']
+        unk_count += 1
+      data.append(index)
+    count[0][1] = unk_count
+    reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    return data, count, dictionary, reversed_dictionary
+
+def get_pretrain_dictionaries(filename):
+
+    n_words = 200000
+    data = read_data_nonzip(filename)
+    return build_dataset(data, n_words)
+
+
+
+def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False):
   """Example of building, training and visualizing a word2vec model."""
+
+  #if get_embeddings, no training. Just returns final_embeddings
+
   # Create the directory for TensorBoard variables if there is not.
   if not os.path.exists(log_dir):
     os.makedirs(log_dir)
@@ -88,19 +128,9 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
     return local_filename
 
   #filename = maybe_download('text8.zip', 31344016)
-  filename = 'modified_text'
+  #filename = 'modified_text'
 
   # Read the data into a list of strings.
-  def read_data(filename):
-    """Extract the first file enclosed in a zip file as a list of words."""
-    with zipfile.ZipFile(filename) as f:
-      data = tf.compat.as_str(f.read(f.namelist()[0])).split()
-    return data
-
-  def read_data_nonzip(filename):
-    with open(filename, 'r') as f:
-      data = f.read().split()
-    return data
 
   #vocabulary = read_data(filename)
   vocabulary = read_data_nonzip(filename)
@@ -110,23 +140,6 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
   # Step 2: Build the dictionary and replace rare words with UNK token.
   vocabulary_size = 200000
 
-  def build_dataset(words, n_words):
-    """Process raw inputs into a dataset."""
-    count = [['UNK', -1]]
-    count.extend(collections.Counter(words).most_common(n_words - 1))
-    dictionary = dict()
-    for word, _ in count:
-      dictionary[word] = len(dictionary)
-    data = list()
-    unk_count = 0
-    for word in words:
-      index = dictionary.get(word, 0)
-      if index == 0:  # dictionary['UNK']
-        unk_count += 1
-      data.append(index)
-    count[0][1] = unk_count
-    reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-    return data, count, dictionary, reversed_dictionary
 
   # Filling 4 global variables:
   # data - list of codes (integers from 0 to vocabulary_size-1).
@@ -134,8 +147,14 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
   # count - map of words(strings) to count of occurrences
   # dictionary - map of words(strings) to their codes(integers)
   # reverse_dictionary - maps codes(integers) to words(strings)
-  data, count, unused_dictionary, reverse_dictionary = build_dataset(
-      vocabulary, vocabulary_size)
+  data = []
+  count = 0
+  
+  if not dictionaries:
+      data, count, unused_dictionary, reverse_dictionary = build_dataset(
+          vocabulary, vocabulary_size)
+  else:
+      data, count, unused_dictionary, reverse_dictionary = dictionaries
 
 
   del vocabulary  # Hint to reduce memory.
@@ -172,8 +191,10 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
     return batch, labels
 
 
+  """
   for elem in unused_dictionary:
       print(elem)
+  """
 
   #batch, labels = generate_batch(batch_size=8, num_skips=2, skip_window=1)
 
@@ -181,7 +202,8 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
 
   #batch_size = 128
   #batch_size = len(global_inputs[0])
-  batch_size = 278
+  #batch_size = 278
+  batch_size=8500
   embedding_size = 128  # Dimension of the embedding vector.
   skip_window = 1  # How many words to consider left and right.
   num_skips = 2  # How many times to reuse an input to generate a label.
@@ -194,7 +216,7 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
   valid_size = 16  # Random set of words to evaluate similarity on.
   valid_window = 100  # Only pick dev samples in the head of the distribution.
   valid_examples = np.random.choice(valid_window, valid_size, replace=False)
-  print(valid_examples)
+  #print(valid_examples)
 
   graph = tf.Graph()
 
@@ -202,13 +224,14 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
 
     # Input data.
     with tf.name_scope('inputs'):
-      train_inputs = tf.placeholder(tf.int32, shape=[batch_size])
-      train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
+      train_inputs = tf.placeholder(tf.int32, shape=[None])
+      train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
 
     # Ops and variables pinned to the CPU because of missing GPU implementation
-    with tf.device('/cpu:0'):
+    # Now using GPU
+    with tf.device('/gpu:0'):
       # Look up embeddings for inputs.
       with tf.name_scope('embeddings'):
         embeddings = tf.Variable(
@@ -224,7 +247,6 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
 
       with tf.name_scope('biases'):
         nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
-        print(nce_biases.get_shape())
 
     # Compute the average NCE loss for the batch.
     # tf.nce_loss automatically draws a new sample of the negative labels each
@@ -247,7 +269,8 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
 
     # Construct the SGD optimizer using a learning rate of 1.0.
     with tf.name_scope('optimizer'):
-      optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
+      #optimizer = tf.train.AdamOptimizer(5e-4).minimize(loss)
+      optimizer = tf.train.GradientDescentOptimizer(1).minimize(loss)
 
     # Compute the cosine similarity between minibatch examples and all
     # embeddings.
@@ -269,7 +292,7 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
 
   # Step 5: Begin training.
   if retraining:
-    num_steps = 1
+    num_steps = 10000
   else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
@@ -282,9 +305,12 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
     init.run()
     print('Initialized')
 
-    if retraining:
+    if retraining or get_embeddings:
         saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
         print("MODEL RESTORED")
+        if get_embeddings:
+            final_embeddings = normalized_embeddings.eval()
+            return final_embeddings
 
 
     print("LEN EMBEDDINGS")
@@ -300,29 +326,27 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
       #batch_labels = np.transpose(batch_labels)
       #print("TRANSPOSED")
       #print(len(batch), len(labels))
-      batch_inputs = np.zeros([278])
-      batch_labels = np.zeros([278, 1])
+      batch_inputs = np.zeros([batch_size])
+      batch_labels = np.zeros([batch_size, 1])
     
       if retraining:
           inputs, labels = process_inputs(X, y)
           for i in range(len(inputs)):
-              print(unused_dictionary.get(inputs[i]))
+              #print(unused_dictionary.get(inputs[i]))
               batch_inputs[i] = unused_dictionary.get(inputs[i])
               batch_labels[i,0] = unused_dictionary.get(labels[i])
-          print(batch_labels)
+          #print(batch_labels)
       
-      batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window)
+      else: batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window)
     
       #for x in range(batch_size - len(batch_inputs)):
           #batch_inputs = np.append(batch_inputs, [999999])
           #batch_labels = np.append(batch_labels, [999999])
 
-      print(np.shape(batch_inputs))
+      #print(np.shape(batch_inputs))
       #np.reshape(batch_inputs, 278, 1)
       #np.reshape(batch_labels, 1, 278)
 
-      print(len(batch_inputs))
-      print(len(batch_labels))
 
       feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
@@ -374,8 +398,12 @@ def word2vec_basic(log_dir, retraining=False, X=None, y=None):
         f.write(reverse_dictionary[i] + '\n')
 
     # Save the model for checkpoints.
-    saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-    return final_embeddings, unused_dictionary
+    
+    #Note: You ONLY WANT to save the model if you are training on the
+    #data for the first time. If retraining for multiple test sets, don't save it.
+    if not retraining: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+    return final_embeddings
+
 
 
 # All functionality is run after tf.app.run() (b/122547914). This could be split

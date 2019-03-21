@@ -2,7 +2,7 @@ import csv
 import spacy
 from nltk.corpus import wordnet as wn
 from sklearn.model_selection import StratifiedKFold
-import word2vec_basic
+from word2vec_basic import *
 import numpy as np
 import matrix_priors
 import random
@@ -28,7 +28,7 @@ def roll_probs(matrix_prob_vector):
         return selected_index
 
 
-filename = "dummy_results.csv"
+filename = "official_results.csv"
 print("trying to get prior matrix")
 #prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
 #print(rows_dict)
@@ -97,11 +97,16 @@ def instances_disagree(X, y):
 
 
 
-def get_train_test():
+def get_train_test(dictionary):
 
         X = []
         y = []
 
+        """
+        Cross validation of the data
+
+        Uses standard k-fold algorithm.
+        """
 
         with open(filename) as csvfile:
             #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
@@ -111,8 +116,6 @@ def get_train_test():
                     continue
 
                 row_result = row[27:32]
-
-
                 answer_label = row_result[4]
                 answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
 
@@ -123,10 +126,13 @@ def get_train_test():
         
 
         skf = StratifiedKFold(n_splits=5, shuffle=True)
-        print(rows_dict)
+        #print(rows_dict)
         y_numerical = y[:]
         for index, word in enumerate(y):
-            row = rows_dict[word]
+            #the word in the csv may be something like.. cereal_2. We need to
+            #take off the _2 to get the dictionary index of the word. 
+            word = matrix_priors.get_synset_and_strip(word)[1]
+            row = dictionary[word]
             y_numerical[index] = row 
         """
         for train, test in skf.split(X, y_numerical):
@@ -175,17 +181,59 @@ def eval_random(X, y, test):
     
     return total_correct / len(test)
 
-def retrain_model(X, y, train):
+
+def train_original_model():
+
+    word2vec_basic('log', retraining=False, X=None, y=None, dictionaries=None)
+    return
+
+def retrain_model(X, y, train, dictionaries):
 
     train_X = [X[x] for x in train]
     train_y = [y[x] for x in train]
 
-    final_embeddings, dictionary = word2vec_basic('.log', retraining=True, X=train_X, y=train_y)
-    return final_embeddings, dictionary
+    final_embeddings = word2vec_basic('log', retraining=True, X=train_X, y=train_y, dictionaries=dictionaries)
+
+    return final_embeddings
 
 
+def evaluate_word2vec(X, y, test, final_embeddings, dictionary, rows_dict=None):
 
-def evaluate_word2vec_wordnet(X, y, test, rows_dict, final_embeddings, dictionary):
+    total_correct_w2v = 0
+
+    for case in test:
+
+        primary = X[case][0] 
+
+        primary_token = matrix_priors.get_synset_and_strip(primary)[1]
+        primary_embedding = final_embeddings[dictionary.get(primary_token)]
+        
+        a = X[case][1]
+        a_token = matrix_priors.get_synset_and_strip(a)[1]
+        a_embedding = final_embeddings[dictionary.get(a_token)]
+
+        b = X[case][2]
+        b_token = matrix_priors.get_synset_and_strip(b)[1]
+        b_embedding = final_embeddings[dictionary.get(b_token)]
+
+        c = X[case][3]
+        c_token = matrix_priors.get_synset_and_strip(c)[1]
+        c_embedding = final_embeddings[dictionary.get(c_token)]
+         
+        embedding_sim_vector = []
+       # print(primary_embedding)
+       # print(a_embedding)
+        embedding_sim_vector.append(np.dot(primary_embedding, a_embedding))
+        embedding_sim_vector.append(np.dot(primary_embedding, b_embedding))
+        embedding_sim_vector.append(np.dot(primary_embedding, c_embedding))
+
+        if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
+            total_correct_w2v += 1
+
+    return (total_correct_w2v/len(test))
+
+
+def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
 
     # test is a one-dimensional array.
     # Run this as many times as you want, average the accuracy.
@@ -198,82 +246,90 @@ def evaluate_word2vec_wordnet(X, y, test, rows_dict, final_embeddings, dictionar
 
         primary = X[case][0] 
 
-        primary_syn, primary_token = matrix_priors.get_synset_and_strip(primary)
-        primary_embedding = final_embeddings[dictionary.get(primary_token)]
-        #primary_token = nlp(primary_token)
+        primary_syn = matrix_priors.get_synset_and_strip(primary)[0]
         
         a = X[case][1]
-        a_syn, a_token = matrix_priors.get_synset_and_strip(a)
-        a_embedding = final_embeddings[dictionary.get(a_token)]
-        #a_token = nlp(a_token)
+        a_syn = matrix_priors.get_synset_and_strip(a)[0]
 
         b = X[case][2]
-        b_syn, b_token = matrix_priors.get_synset_and_strip(b)
-        b_embedding = final_embeddings[dictionary.get(b_token)]
-        #b_token = nlp(b_token)
+        b_syn = matrix_priors.get_synset_and_strip(b)[0]
 
         c = X[case][3]
-        c_syn, c_token = matrix_priors.get_synset_and_strip(b)
-        c_embedding = final_embeddings[dictionary.get(c_token)]
-        #c_token = nlp(c_token)     
+        c_syn = matrix_priors.get_synset_and_strip(c)[0]
          
-        embedding_sim_vector = []
-        embedding_sim_vector.append(tf.matmul(primary_embedding, a_embedding, transpose_b=True))
-        embedding_sim_vector.append(tf.matmul(primary_embedding, b_embedding, transpose_b=True))
-        embedding_sim_vector.append(tf.matmul(primary_embedding, c_embedding, transpose_b=True))
-
         wordnet_sim_vector = []
         wordnet_sim_vector.append(primary_syn.path_similarity(a_syn))
         wordnet_sim_vector.append(primary_syn.path_similarity(b_syn))
         wordnet_sim_vector.append(primary_syn.path_similarity(c_syn))
     
-        if(np.argmax(embedding_sim_vector)+1 == X[case].index(y[case])):
-            total_correct_w2v += 1
-        if(np.argmax(wordnet_sim_vector)+1 == X[case].index(y[case])):
+        if(np.argmax(wordnet_sim_vector) == X[case][1:].index(y[case])):
             total_correct_wordnet += 1
+            #print("!!!!!!!!!!!!!!!!")
+        """
+        print(X[case])
+        print("ACTUAL ANSWER: ", y[case])
 
-    return (total_correct_w2v/len(test), total_correct_wordnet/len(test))
+        print("WORDNET MAX: ", str(X[case][np.argmax(wordnet_sim_vector)+1]))
+        """
+
+    return (total_correct_wordnet/len(test))
 
 
 if __name__=="__main__":
 
     #print(verify_data())
     #exit()
+    #train_original_model() 
+    
+    bigrams_filename = 'modified_text'
 
+    
+    dictionaries = get_pretrain_dictionaries(corpus_filename) 
+    unused_dictionary = dictionaries[2]
 
-    X, y, split = get_train_test() 
+    X, y, split = get_train_test(unused_dictionary) 
     
     word2vec_acc = 0
     wordnet_acc = 0
+    retrained_acc = 0
     empirical_acc = 0
     random_acc = 0
 
     train = []
     test = []
+
+    #Does no training, just a hacky way to get the embeddings off of the original base model without trying to load the tensor individually.
+    initial_embeddings = word2vec_basic('log', corpus_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
     
     for train_i, test_i in split:
         train.append(train_i)
         test.append(test_i)
 
     print("TRAIN")
-    print(train)
+    #print(train)
 
     for test_num in range(len(test)):
-       final_embeddings, dictionary = retrain_model(X, y, train[test_num]) 
-       next_word2vec_acc, next_wordnet_acc = evaluate_word2vec_wordnet(X, y, test[test_num], rows_dict, final_embeddings, dictionary) 
+       next_word2vec_acc = evaluate_word2vec(X, y, test[test_num], initial_embeddings, unused_dictionary)
+       final_embeddings = retrain_model(X, y, train[test_num], dictionaries) 
+       next_retrained_acc = evaluate_word2vec(X, y, test[test_num], final_embeddings, unused_dictionary)
+       next_wordnet_acc = evaluate_wordnet(X, y, test[test_num], unused_dictionary)
        next_random_acc = eval_random(X, y, test[test_num])
 
        print("next word2vec acc: ", next_word2vec_acc)
+       print("next retrained word2vec acc: ", next_retrained_acc)
        print("next wordnet acc: ", next_wordnet_acc)
        print("next random acc: ", next_random_acc)
        word2vec_acc += next_word2vec_acc
+       retrained_acc += next_retrained_acc
        wordnet_acc += next_wordnet_acc
        random_acc += next_random_acc
    
     word2vec_acc /= len(test)
+    retrained_acc /= len(test)
     wordnet_acc /= len(test)
     random_acc /= len(test)
        
+    """
 
     for test_num in range(len(test)):
         empirical_matrix = matrix_priors.fill_empirical_matrix(X, y, train[test_num], rows_dict)
@@ -283,8 +339,13 @@ if __name__=="__main__":
         empirical_acc += next_empirical_acc
     empirical_acc /= len(test)
 
+    """
+
     print("Averaged accuracy of word2vec is:")
     print(str(word2vec_acc))
+
+    print("Averaged accuracy of retrained word2vec is:")
+    print(str(retrained_acc))
 
     print("Averaged accuracy of wordnet is:")
     print(str(wordnet_acc))
@@ -312,7 +373,7 @@ if __name__=="__main__":
     print("================================================")
     print("Looking at disagreeance in data")
 
-    instances_disagree(X, y)
+    #instances_disagree(X, y)
     
 
 
