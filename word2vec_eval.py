@@ -19,6 +19,9 @@ matrix_correct_counter = 0
 
 random_correct_counter = 0
 
+
+MODEL_EXISTS_ALREADY = False
+
 def roll_probs(matrix_prob_vector):
 
         matrix_prob_vector /= np.sum(matrix_prob_vector) 
@@ -182,43 +185,51 @@ def eval_random(X, y, test):
     return total_correct / len(test)
 
 
-def train_original_model():
+def train_original_model(filename):
 
-    word2vec_basic('log', retraining=False, X=None, y=None, dictionaries=None)
+    word2vec_basic('log', filename, retraining=False, X=None, y=None, dictionaries=None)
     return
 
-def retrain_model(X, y, train, dictionaries):
+
+def retrain_model(filename, X, y, train, dictionaries):
 
     train_X = [X[x] for x in train]
     train_y = [y[x] for x in train]
 
-    final_embeddings = word2vec_basic('log', retraining=True, X=train_X, y=train_y, dictionaries=dictionaries)
+    embeddings, weights = word2vec_basic('log', filename, retraining=True, X=train_X, y=train_y, dictionaries=dictionaries)
 
-    return final_embeddings
+    return embeddings, weights
 
 
-def evaluate_word2vec(X, y, test, final_embeddings, dictionary, rows_dict=None):
+def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=None):
 
     total_correct_w2v = 0
+    total_correct_output = 0
+
+    normalized_embeddings = normalize_embeddings(embeddings) 
 
     for case in test:
 
         primary = X[case][0] 
-
         primary_token = matrix_priors.get_synset_and_strip(primary)[1]
-        primary_embedding = final_embeddings[dictionary.get(primary_token)]
+        p_index = dictionary.get(primary_token)
+        primary_embedding = normalized_embeddings[p_index]
+
         
         a = X[case][1]
         a_token = matrix_priors.get_synset_and_strip(a)[1]
-        a_embedding = final_embeddings[dictionary.get(a_token)]
+        a_index = dictionary.get(a_token)
+        a_embedding = normalized_embeddings[a_index]
 
         b = X[case][2]
         b_token = matrix_priors.get_synset_and_strip(b)[1]
-        b_embedding = final_embeddings[dictionary.get(b_token)]
+        b_index = dictionary.get(b_token)
+        b_embedding = normalized_embeddings[b_index]
 
         c = X[case][3]
         c_token = matrix_priors.get_synset_and_strip(c)[1]
-        c_embedding = final_embeddings[dictionary.get(c_token)]
+        c_index = dictionary.get(c_token)
+        c_embedding = normalized_embeddings[c_index]
          
         embedding_sim_vector = []
        # print(primary_embedding)
@@ -230,7 +241,35 @@ def evaluate_word2vec(X, y, test, final_embeddings, dictionary, rows_dict=None):
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct_w2v += 1
 
-    return (total_correct_w2v/len(test))
+        #formatted_embedding = [embeddings[p_index]
+        #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
+        output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
+        output_vector = np.reshape(output_vector, (len(output_vector[0])))
+        
+
+        output_sim_vector = []
+    
+        output_sim_vector.append(output_vector[a_index])
+        output_sim_vector.append(output_vector[b_index])
+        output_sim_vector.append(output_vector[c_index])
+
+        if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
+            total_correct_output += 1
+        else:
+            if X[case][0] in X[case][1:]:
+                total_correct_output += 1
+
+        """
+        print(X[case])
+        print("ACTUAL ANSWER: ", y[case])
+
+        print("OUTPUT MAX: ", str(X[case][np.argmax(output_sim_vector)+1]))
+        print(output_sim_vector)
+        print("=========================")
+        """
+        
+        
+return total_correct_w2v/len(test), total_correct_output/len(test)
 
 
 def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
@@ -279,19 +318,28 @@ if __name__=="__main__":
 
     #print(verify_data())
     #exit()
-    #train_original_model() 
     
-    bigrams_filename = 'modified_text'
+    bigram_filename = 'modified_text'
+    #original_filename = 'text8'
 
+    #train_original_model(filename=original_filename, bigrams=False)
+    if not MODEL_EXISTS_ALREADY:
+        train_original_model(filename=bigram_filename, bigrams=True) 
     
-    dictionaries = get_pretrain_dictionaries(corpus_filename) 
-    unused_dictionary = dictionaries[2]
+    bigram_dictionaries = get_pretrain_dictionaries(bigram_filename) 
+    bigram_unused_dictionary = bigram_dictionaries[2]
 
-    X, y, split = get_train_test(unused_dictionary) 
+    #regular_dictionaries = get_pretrain_dictionaries(original_filename)
+    #regular_unused_dictionary = regular_dictionaries[2]
+    
+
+    X, y, split = get_train_test(bigram_unused_dictionary) 
     
     word2vec_acc = 0
+    word2vec_alt_acc = 0
     wordnet_acc = 0
     retrained_acc = 0
+    retrained_alt_acc = 0
     empirical_acc = 0
     random_acc = 0
 
@@ -299,33 +347,41 @@ if __name__=="__main__":
     test = []
 
     #Does no training, just a hacky way to get the embeddings off of the original base model without trying to load the tensor individually.
-    initial_embeddings = word2vec_basic('log', corpus_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
+    initial_bigram_embeddings, initial_bigram_weights = word2vec_basic('log', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
+    #initial_regular_embeddings = word2vec_basic('log2', original_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
+    
     
     for train_i, test_i in split:
         train.append(train_i)
         test.append(test_i)
 
-    print("TRAIN")
+    print("Beginning to retrain word2vec and evaluate models...")
     #print(train)
 
     for test_num in range(len(test)):
-       next_word2vec_acc = evaluate_word2vec(X, y, test[test_num], initial_embeddings, unused_dictionary)
-       final_embeddings = retrain_model(X, y, train[test_num], dictionaries) 
-       next_retrained_acc = evaluate_word2vec(X, y, test[test_num], final_embeddings, unused_dictionary)
-       next_wordnet_acc = evaluate_wordnet(X, y, test[test_num], unused_dictionary)
+       next_word2vec_acc, next_word2vec_alt_acc = evaluate_word2vec(X, y, test[test_num], initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary)
+       final_bigram_embeddings, final_bigram_weights = retrain_model(bigram_filename, X, y, train[test_num], bigram_dictionaries) 
+       next_retrained_acc, next_retrained_alt_acc = evaluate_word2vec(X, y, test[test_num], final_bigram_embeddings, final_bigram_weights, bigram_unused_dictionary)
+       next_wordnet_acc = evaluate_wordnet(X, y, test[test_num], bigram_unused_dictionary)
        next_random_acc = eval_random(X, y, test[test_num])
 
        print("next word2vec acc: ", next_word2vec_acc)
+       print("next word2vec alt acc: ", next_word2vec_alt_acc)
        print("next retrained word2vec acc: ", next_retrained_acc)
+       print("next retrained alt acc: ", next_retrained_alt_acc)
        print("next wordnet acc: ", next_wordnet_acc)
        print("next random acc: ", next_random_acc)
        word2vec_acc += next_word2vec_acc
+       word2vec_alt_acc += next_word2vec_alt_acc
        retrained_acc += next_retrained_acc
+       retrained_alt_acc += next_retrained_alt_acc
        wordnet_acc += next_wordnet_acc
        random_acc += next_random_acc
    
     word2vec_acc /= len(test)
+    word2vec_alt_acc /= len(test)
     retrained_acc /= len(test)
+    retrained_alt_acc /= len(test)
     wordnet_acc /= len(test)
     random_acc /= len(test)
        
@@ -344,8 +400,14 @@ if __name__=="__main__":
     print("Averaged accuracy of word2vec is:")
     print(str(word2vec_acc))
 
+    print("Averaged accuracy of word2vec alt is: ")
+    print(str(word2vec_alt_acc))
+
     print("Averaged accuracy of retrained word2vec is:")
     print(str(retrained_acc))
+
+    print("Averaged accuracy of retrained alt is:")
+    print(str(retrained_alt_acc))
 
     print("Averaged accuracy of wordnet is:")
     print(str(wordnet_acc))

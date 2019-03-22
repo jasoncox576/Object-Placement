@@ -98,6 +98,16 @@ def get_pretrain_dictionaries(filename):
     return build_dataset(data, n_words)
 
 
+def normalize_embeddings(embeddings):
+
+    sess = tf.Session()
+    with sess.as_default():
+        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
+        normalized_embeddings = embeddings / norm
+
+        return normalized_embeddings.eval()
+
+
 
 def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False):
   """Example of building, training and visualizing a word2vec model."""
@@ -273,7 +283,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
       optimizer = tf.train.GradientDescentOptimizer(1).minimize(loss)
 
     # Compute the cosine similarity between minibatch examples and all
-    # embeddings.
+    
+    #normalized_embeddings = normalize_embeddings(embeddings)
     norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
     normalized_embeddings = embeddings / norm
     valid_embeddings = tf.nn.embedding_lookup(normalized_embeddings,
@@ -309,8 +320,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
         saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
         print("MODEL RESTORED")
         if get_embeddings:
-            final_embeddings = normalized_embeddings.eval()
-            return final_embeddings
+            #final_embeddings = normalized_embeddings.eval()
+            return embeddings.eval(), nce_weights.eval()
 
 
     print("LEN EMBEDDINGS")
@@ -402,7 +413,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
     #Note: You ONLY WANT to save the model if you are training on the
     #data for the first time. If retraining for multiple test sets, don't save it.
     if not retraining: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-    return final_embeddings
+    #return final_embeddings, 
+    return embeddings.eval(), nce_weights.eval()
 
 
 
