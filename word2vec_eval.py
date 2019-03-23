@@ -206,6 +206,14 @@ def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=Non
     total_correct_w2v = 0
     total_correct_output = 0
 
+    total_unigram = 0
+    total_bigram = 0
+    
+    w2v_unigram_correct = 0
+    output_unigram_correct = 0
+    w2v_bigram_correct = 0
+    output_bigram_correct = 0
+
     normalized_embeddings = normalize_embeddings(embeddings) 
 
     for case in test:
@@ -240,6 +248,10 @@ def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=Non
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct_w2v += 1
+            if '_' in primary:
+                w2v_bigram_correct += 1
+            else:
+                w2v_unigram_correct += 1
 
         #formatted_embedding = [embeddings[p_index]
         #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
@@ -255,9 +267,22 @@ def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=Non
 
         if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
             total_correct_output += 1
+            if '_' in primary:
+                output_bigram_correct += 1
+            else:
+                output_unigram_correct += 1
         else:
             if X[case][0] in X[case][1:]:
                 total_correct_output += 1
+                if '_' in primary:
+                    output_bigram_correct += 1
+                else:
+                    output_unigram_correct += 1 
+
+        if '_' in primary:
+            total_bigram += 1
+        else:
+            total_unigram += 1
 
         """
         print(X[case])
@@ -269,7 +294,7 @@ def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=Non
         """
         
         
-return total_correct_w2v/len(test), total_correct_output/len(test)
+    return total_correct_w2v/len(test), total_correct_output/len(test), [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
 
 
 def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
@@ -324,11 +349,13 @@ if __name__=="__main__":
 
     #train_original_model(filename=original_filename, bigrams=False)
     if not MODEL_EXISTS_ALREADY:
-        train_original_model(filename=bigram_filename, bigrams=True) 
+        train_original_model(filename=bigram_filename) 
     
     bigram_dictionaries = get_pretrain_dictionaries(bigram_filename) 
     bigram_unused_dictionary = bigram_dictionaries[2]
 
+    accs_pretrain = np.zeros(4)
+    accs = np.zeros(4)
     #regular_dictionaries = get_pretrain_dictionaries(original_filename)
     #regular_unused_dictionary = regular_dictionaries[2]
     
@@ -342,6 +369,7 @@ if __name__=="__main__":
     retrained_alt_acc = 0
     empirical_acc = 0
     random_acc = 0
+
 
     train = []
     test = []
@@ -359,9 +387,9 @@ if __name__=="__main__":
     #print(train)
 
     for test_num in range(len(test)):
-       next_word2vec_acc, next_word2vec_alt_acc = evaluate_word2vec(X, y, test[test_num], initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary)
+       next_word2vec_acc, next_word2vec_alt_acc, new_accs_pretrain = evaluate_word2vec(X, y, test[test_num], initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary)
        final_bigram_embeddings, final_bigram_weights = retrain_model(bigram_filename, X, y, train[test_num], bigram_dictionaries) 
-       next_retrained_acc, next_retrained_alt_acc = evaluate_word2vec(X, y, test[test_num], final_bigram_embeddings, final_bigram_weights, bigram_unused_dictionary)
+       next_retrained_acc, next_retrained_alt_acc, new_accs = evaluate_word2vec(X, y, test[test_num], final_bigram_embeddings, final_bigram_weights, bigram_unused_dictionary)
        next_wordnet_acc = evaluate_wordnet(X, y, test[test_num], bigram_unused_dictionary)
        next_random_acc = eval_random(X, y, test[test_num])
 
@@ -377,6 +405,8 @@ if __name__=="__main__":
        retrained_alt_acc += next_retrained_alt_acc
        wordnet_acc += next_wordnet_acc
        random_acc += next_random_acc
+       accs = np.add(accs, new_accs)
+       accs_pretrain = np.add(accs_pretrain, new_accs_pretrain)
    
     word2vec_acc /= len(test)
     word2vec_alt_acc /= len(test)
@@ -384,6 +414,8 @@ if __name__=="__main__":
     retrained_alt_acc /= len(test)
     wordnet_acc /= len(test)
     random_acc /= len(test)
+    accs = np.divide(accs, len(test))
+    accs_pretrain = np.divide(accs_pretrain, len(test))
        
     """
 
@@ -418,6 +450,14 @@ if __name__=="__main__":
 
     print("Averaged accuracy of random guessing is:")
     print(str(random_acc))
+
+
+    print("Averaged accs bigram/unigram")
+    print(accs)
+
+    print("Averaged pretrain accs bigram/unigram")
+    print(accs_pretrain)
+
     """
     print("\nTotal accuracy of matrix is:")
     print(str(matrix_correct_counter / total_row_counter))
