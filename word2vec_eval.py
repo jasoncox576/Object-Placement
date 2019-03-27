@@ -344,7 +344,8 @@ if __name__=="__main__":
     #print(verify_data())
     #exit()
     
-    bigram_filename = 'modified_text'
+    bigram_filename = '/home/justin/Data/fil9'
+    #bigram_filename = 'modified_text'
     #original_filename = 'text8'
 
     #train_original_model(filename=original_filename, bigrams=False)

@@ -28,6 +28,7 @@ from tempfile import gettempdir
 import zipfile
 
 import word2vec_eval
+import util
 
 import numpy as np
 from six.moves import urllib
@@ -111,39 +112,13 @@ def normalize_embeddings(embeddings):
 
 def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False):
   """Example of building, training and visualizing a word2vec model."""
-
-  #if get_embeddings, no training. Just returns final_embeddings
-
   # Create the directory for TensorBoard variables if there is not.
   if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-  # Step 1: Download the data.
-  url = 'http://mattmahoney.net/dc/'
-
-  # pylint: disable=redefined-outer-name
-  def maybe_download(filename, expected_bytes):
-    """Download a file if not present, and make sure it's the right size."""
-    local_filename = os.path.join(gettempdir(), filename)
-    if not os.path.exists(local_filename):
-      local_filename, _ = urllib.request.urlretrieve(url + filename,
-                                                     local_filename)
-    statinfo = os.stat(local_filename)
-    if statinfo.st_size == expected_bytes:
-      print('Found and verified', filename)
-    else:
-      print(statinfo.st_size)
-      raise Exception('Failed to verify ' + local_filename +
-                      '. Can you get to it with a browser?')
-    return local_filename
-
-  #filename = maybe_download('text8.zip', 31344016)
-  #filename = 'modified_text'
-
   # Read the data into a list of strings.
 
-  #vocabulary = read_data(filename)
-  vocabulary = read_data_nonzip(filename)
+  vocabulary = read_data_nonzip(filename)	# = read_data(filename)
   
   print('Data size', len(vocabulary))
 
@@ -279,8 +254,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
 
     # Construct the SGD optimizer using a learning rate of 1.0.
     with tf.name_scope('optimizer'):
-      #optimizer = tf.train.AdamOptimizer(5e-4).minimize(loss)
-      optimizer = tf.train.GradientDescentOptimizer(1).minimize(loss)
+      optimizer = tf.train.AdamOptimizer(5e-4).minimize(loss)
+      #optimizer = tf.train.GradientDescentOptimizer(1).minimize(loss)
 
     # Compute the cosine similarity between minibatch examples and all
     
@@ -309,8 +284,6 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
   with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
     writer = tf.summary.FileWriter(log_dir, session.graph)
-
-
 
     # We must initialize all variables before we use them.
     init.run()
