@@ -64,7 +64,9 @@ def sentences_to_bi_grams(n_grams, input_file_name, output_file_name):
 
 with open('text8', 'r') as filename:
 
-    sentences = get_sentences(filename)
-    phraser = build_phrases(sentences)
-    sentences_to_bi_grams(phraser, 'text8', 'modified_text') 
+  sentences = get_sentences(filename)
+  phraser = build_phrases(sentences)
+  filename = '/home/justin/Data/fil9'
+  out_filename = '/home/justin/Data/fil9_bigram'
+  sentences_to_bi_grams(phraser, filename, out_filename) 
 

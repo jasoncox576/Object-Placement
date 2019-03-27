@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import argparse
 import collections
+import datetime
 import math
 import os
 import random
@@ -358,7 +359,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
           average_loss /= 2000
         # The average loss is an estimate of the loss over the last 2000
         # batches.
-        print('Average loss at step ', step, ': ', average_loss)
+        print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
         average_loss = 0
       
       # Note that this is expensive (~20% slowdown if computed every 500 steps)

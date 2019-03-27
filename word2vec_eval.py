@@ -241,7 +241,8 @@ def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=Non
         """
         
         
-    return total_correct_w2v/len(test), total_correct_output/len(test), [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
+    return total_correct_w2v/len(test), total_correct_output/len(test)
+    #, [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
 
 
 def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
