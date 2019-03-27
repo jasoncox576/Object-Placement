@@ -2,7 +2,9 @@ import csv
 import spacy
 from nltk.corpus import wordnet as wn
 from sklearn.model_selection import StratifiedKFold
-from word2vec_basic import *
+from object_placement_turk import *
+#from word2vec_basic import *
+from word2vec_train import *
 import numpy as np
 import matrix_priors
 import random
@@ -33,11 +35,6 @@ def roll_probs(matrix_prob_vector):
 
 filename = "official_results.csv"
 print("trying to get prior matrix")
-#prior_matrix, rows_dict = matrix_priors.fill_matrix("dummy_priors.csv")
-#print(rows_dict)
-#word2vec_matrix = matrix_priors.fill_matrix_word2vec(rows_dict)
-
-#print("WORD2VEC MATRIX:", word2vec_matrix)
 
 
 def verify_data():
@@ -100,50 +97,6 @@ def instances_disagree(X, y):
 
 
 
-def get_train_test(dictionary):
-
-        X = []
-        y = []
-
-        """
-        Cross validation of the data
-
-        Uses standard k-fold algorithm.
-        """
-
-        with open(filename) as csvfile:
-            #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-            reader = csv.reader(csvfile)
-            for row in reader:
-                if reader.line_num == 1:
-                    continue
-
-                row_result = row[27:32]
-                answer_label = row_result[4]
-                answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
-
-                X.append([row_result[0], row_result[1], row_result[2], row_result[3]])
-                #Fetch the answer to the most recent instance
-                y.append(X[-1][answer])
-                
-        
-
-        skf = StratifiedKFold(n_splits=5, shuffle=True)
-        #print(rows_dict)
-        y_numerical = y[:]
-        for index, word in enumerate(y):
-            #the word in the csv may be something like.. cereal_2. We need to
-            #take off the _2 to get the dictionary index of the word. 
-            word = matrix_priors.get_synset_and_strip(word)[1]
-            row = dictionary[word]
-            y_numerical[index] = row 
-        """
-        for train, test in skf.split(X, y_numerical):
-            print(train, test)
-        """
-        
-        return X, y, skf.split(X, y_numerical)
-
 def evaluate_empirical(matrix, X, y, test, rows_dict):
     
 
@@ -183,12 +136,6 @@ def eval_random(X, y, test):
             total_correct += 1
     
     return total_correct / len(test)
-
-
-def train_original_model(filename):
-
-    word2vec_basic('log', filename, retraining=False, X=None, y=None, dictionaries=None)
-    return
 
 
 def retrain_model(filename, X, y, train, dictionaries):
@@ -340,10 +287,6 @@ def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
 
 
 if __name__=="__main__":
-
-    #print(verify_data())
-    #exit()
-    
     bigram_filename = '/home/justin/Data/fil9'
     #bigram_filename = 'modified_text'
     #original_filename = 'text8'
@@ -361,7 +304,7 @@ if __name__=="__main__":
     #regular_unused_dictionary = regular_dictionaries[2]
     
 
-    X, y, split = get_train_test(bigram_unused_dictionary) 
+    X, y, split = get_train_test(bigram_unused_dictionary, filename) 
     
     word2vec_acc = 0
     word2vec_alt_acc = 0
@@ -478,8 +421,6 @@ if __name__=="__main__":
 
     #instances_disagree(X, y)
     
-
-
 
 
 
