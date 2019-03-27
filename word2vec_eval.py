@@ -3,7 +3,7 @@ import spacy
 from nltk.corpus import wordnet as wn
 from sklearn.model_selection import StratifiedKFold
 from object_placement_turk import *
-#from word2vec_basic import *
+from word2vec_basic import *
 from word2vec_train import *
 import numpy as np
 import matrix_priors
@@ -22,7 +22,7 @@ matrix_correct_counter = 0
 random_correct_counter = 0
 
 
-MODEL_EXISTS_ALREADY = False
+MODEL_EXISTS_ALREADY = True
 
 def roll_probs(matrix_prob_vector):
 
@@ -148,7 +148,7 @@ def retrain_model(filename, X, y, train, dictionaries):
     return embeddings, weights
 
 
-def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=None):
+def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
 
     total_correct_w2v = 0
     total_correct_output = 0
@@ -163,82 +163,80 @@ def evaluate_word2vec(X, y, test, embeddings, weights, dictionary, rows_dict=Non
 
     normalized_embeddings = normalize_embeddings(embeddings) 
 
-    for case in test:
+    primary = X[0] 
+    primary_token = matrix_priors.get_synset_and_strip(primary)[1]
+    p_index = dictionary.get(primary_token)
+    primary_embedding = normalized_embeddings[p_index]
 
-        primary = X[case][0] 
-        primary_token = matrix_priors.get_synset_and_strip(primary)[1]
-        p_index = dictionary.get(primary_token)
-        primary_embedding = normalized_embeddings[p_index]
-
-        
-        a = X[case][1]
-        a_token = matrix_priors.get_synset_and_strip(a)[1]
-        a_index = dictionary.get(a_token)
-        a_embedding = normalized_embeddings[a_index]
-
-        b = X[case][2]
-        b_token = matrix_priors.get_synset_and_strip(b)[1]
-        b_index = dictionary.get(b_token)
-        b_embedding = normalized_embeddings[b_index]
-
-        c = X[case][3]
-        c_token = matrix_priors.get_synset_and_strip(c)[1]
-        c_index = dictionary.get(c_token)
-        c_embedding = normalized_embeddings[c_index]
-         
-        embedding_sim_vector = []
-       # print(primary_embedding)
-       # print(a_embedding)
-        embedding_sim_vector.append(np.dot(primary_embedding, a_embedding))
-        embedding_sim_vector.append(np.dot(primary_embedding, b_embedding))
-        embedding_sim_vector.append(np.dot(primary_embedding, c_embedding))
-
-        if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
-            total_correct_w2v += 1
-            if '_' in primary:
-                w2v_bigram_correct += 1
-            else:
-                w2v_unigram_correct += 1
-
-        #formatted_embedding = [embeddings[p_index]
-        #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
-        output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
-        output_vector = np.reshape(output_vector, (len(output_vector[0])))
-        
-
-        output_sim_vector = []
     
-        output_sim_vector.append(output_vector[a_index])
-        output_sim_vector.append(output_vector[b_index])
-        output_sim_vector.append(output_vector[c_index])
+    a = X[1]
+    a_token = matrix_priors.get_synset_and_strip(a)[1]
+    a_index = dictionary.get(a_token)
+    a_embedding = normalized_embeddings[a_index]
 
-        if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
+    b = X[2]
+    b_token = matrix_priors.get_synset_and_strip(b)[1]
+    b_index = dictionary.get(b_token)
+    b_embedding = normalized_embeddings[b_index]
+
+    c = X[3]
+    c_token = matrix_priors.get_synset_and_strip(c)[1]
+    c_index = dictionary.get(c_token)
+    c_embedding = normalized_embeddings[c_index]
+     
+    embedding_sim_vector = []
+   # print(primary_embedding)
+   # print(a_embedding)
+    embedding_sim_vector.append(np.dot(primary_embedding, a_embedding))
+    embedding_sim_vector.append(np.dot(primary_embedding, b_embedding))
+    embedding_sim_vector.append(np.dot(primary_embedding, c_embedding))
+
+    if(np.argmax(embedding_sim_vector) == X[1:].index(y)):
+        total_correct_w2v += 1
+        if '_' in primary:
+            w2v_bigram_correct += 1
+        else:
+            w2v_unigram_correct += 1
+
+    #formatted_embedding = [embeddings[p_index]
+    #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
+    output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
+    output_vector = np.reshape(output_vector, (len(output_vector[0])))
+    
+
+    output_sim_vector = []
+
+    output_sim_vector.append(output_vector[a_index])
+    output_sim_vector.append(output_vector[b_index])
+    output_sim_vector.append(output_vector[c_index])
+
+    if(np.argmax(output_sim_vector) == X[1:].index(y)):
+        total_correct_output += 1
+        if '_' in primary:
+            output_bigram_correct += 1
+        else:
+            output_unigram_correct += 1
+    else:
+        if X[0] in X[1:]:
             total_correct_output += 1
             if '_' in primary:
                 output_bigram_correct += 1
             else:
-                output_unigram_correct += 1
-        else:
-            if X[case][0] in X[case][1:]:
-                total_correct_output += 1
-                if '_' in primary:
-                    output_bigram_correct += 1
-                else:
-                    output_unigram_correct += 1 
+                output_unigram_correct += 1 
 
-        if '_' in primary:
-            total_bigram += 1
-        else:
-            total_unigram += 1
+    if '_' in primary:
+        total_bigram += 1
+    else:
+        total_unigram += 1
 
-        """
-        print(X[case])
-        print("ACTUAL ANSWER: ", y[case])
+    """
+    print(X[case])
+    print("ACTUAL ANSWER: ", y[case])
 
-        print("OUTPUT MAX: ", str(X[case][np.argmax(output_sim_vector)+1]))
-        print(output_sim_vector)
-        print("=========================")
-        """
+    print("OUTPUT MAX: ", str(X[case][np.argmax(output_sim_vector)+1]))
+    print(output_sim_vector)
+    print("=========================")
+    """
         
         
     return total_correct_w2v/len(test), total_correct_output/len(test)
