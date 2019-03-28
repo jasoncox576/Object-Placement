@@ -37,7 +37,8 @@ filename = "official_results.csv"
 print("trying to get prior matrix")
 
 
-def verify_data():
+"""
+def verify_and_clean_data():
 
     """
     Data is 'bad' if object A is not placed with itself
@@ -46,32 +47,52 @@ def verify_data():
     mistakes is the number of times this occurs,
     total_sames is the number of times an object is already
     on the shelf
-    """
 
+    Will remove all of the bad instances from the csv, plus all
+    the instances by workers flagged as 'bad'.
+    """
     mistakes = 0
     total_sames = 0
+
+    bad_users = []
 
     with open(filename) as csvfile:
         #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         reader = csv.reader(csvfile)
+        writer = csv.writer(csvfile)
+
         for row in reader:
             if reader.line_num == 1:
                 continue
 
             row_result = row[27:32]
 
+            workerID = row[15]
 
             answer_label = row_result[4]
             answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
             
             if row_result[0] in row_result[1:]:
                 if row_result[0] != row_result[answer]:
-                    print("BAD DATA!!")
-                    print(row_result)
-                    print(row_result[0], row_result[answer])
-                    print("====================================")
+                    # In this case, the piece of data and worker are bad.
                     mistakes += 1
+                    bad_users.append(workerID)
+                    writer.writerow(row)
+                    #This deletes the row
+
                 total_sames += 1
+        
+        #Once we have all of the bad users, second pass through the data to clear
+        #out all of the instances by those users.
+        for row in reader:
+            workerID = row[15]
+
+            if reader.line_num == 1:
+                continue
+            
+            if workerID in bad_users:
+                writer.writerow(row)
+                #This deletes the row
 
     return mistakes, total_sames, mistakes/total_sames
 
@@ -94,6 +115,7 @@ def instances_disagree(X, y):
     
 
 
+"""
 
 
 
