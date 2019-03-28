@@ -1,7 +1,7 @@
 import csv
 filename = "official_results.csv"
 write_filename = "cleaned_results.csv"
-
+new_csv_filename = "new_turk_rows.csv"
 
 
 def instances_disagree(X, y):
@@ -21,6 +21,20 @@ def instances_disagree(X, y):
         print(class_disagreements)
 
 
+def make_new_turk_csv(bad_rows):
+    """
+    Takes all of the messed up rows from
+    the first data run and generates a csv
+    for turk so that proper data may be
+    obtained a second go-round
+    """
+    
+    with open(new_csv_filename, "w") as csvfile:
+        writer = csv.writer(csvfile) 
+        first_row = ["image_url", "image_url2", "image_url3", "image_url4"]
+        writer.writerow(first_row)
+        for row in bad_rows:
+            writer.writerow(row)
 
 
 def verify_and_clean_data():
@@ -39,6 +53,7 @@ def verify_and_clean_data():
     mistakes = 0
 
     bad_users = []
+    bad_row_objects = []
     total_rows = 0
 
     with open(filename, "r+") as csvfile:
@@ -69,6 +84,7 @@ def verify_and_clean_data():
         with open(write_filename, "r+") as write_file:
             writer = csv.writer(write_file)
             for row in reader:
+                row_objects = row[27:31]
                 if reader.line_num != 1:  total_rows += 1
                 print("ROW")
                 workerID = row[15]
@@ -77,17 +93,22 @@ def verify_and_clean_data():
                 else:
                     mistakes+=1
                     print("Bad worker")
+                    bad_row_objects.append(row_objects)
 
 
 
-    return mistakes, total_rows, mistakes/total_rows
+    return mistakes, total_rows, mistakes/total_rows, bad_row_objects
 
 if __name__=="__main__":
     performance = verify_and_clean_data()
+    bad_row_objects = performance[-1]
     print("VALIDITY OF DATA BEFORE REMOVING: ", 1-performance[2])
     filename = "cleaned_results.csv" 
     performance2 = verify_and_clean_data()
     print("VALIDITY OF DATA AFTER ERMOVING: ", 1-performance2[2])
+
+    print("\n\n Generating new CSV with HITS for corrupted instances")
+    make_new_turk_csv(bad_row_objects) 
 
 
 

@@ -40,17 +40,15 @@ print("trying to get prior matrix")
 """
 def verify_and_clean_data():
 
-    """
-    Data is 'bad' if object A is not placed with itself
-    when there is an opportunity to do so
+    #Data is 'bad' if object A is not placed with itself
+    #when there is an opportunity to do so
 
-    mistakes is the number of times this occurs,
-    total_sames is the number of times an object is already
-    on the shelf
+    #mistakes is the number of times this occurs,
+    #total_sames is the number of times an object is already
+    #on the shelf
 
-    Will remove all of the bad instances from the csv, plus all
-    the instances by workers flagged as 'bad'.
-    """
+    #Will remove all of the bad instances from the csv, plus all
+    #the instances by workers flagged as 'bad'.
     mistakes = 0
     total_sames = 0
 
