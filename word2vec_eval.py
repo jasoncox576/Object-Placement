@@ -183,71 +183,73 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
 
     normalized_embeddings = normalize_embeddings(embeddings) 
 
-    primary = X[0] 
-    primary_token = matrix_priors.get_synset_and_strip(primary)[1]
-    p_index = dictionary.get(primary_token)
-    primary_embedding = normalized_embeddings[p_index]
+    for case in range(len(X)):
 
-    
-    a = X[1]
-    a_token = matrix_priors.get_synset_and_strip(a)[1]
-    a_index = dictionary.get(a_token)
-    a_embedding = normalized_embeddings[a_index]
+        primary = X[case][0] 
+        primary_token = matrix_priors.get_synset_and_strip(primary)[1]
+        p_index = dictionary.get(primary_token)
+        primary_embedding = normalized_embeddings[p_index]
 
-    b = X[2]
-    b_token = matrix_priors.get_synset_and_strip(b)[1]
-    b_index = dictionary.get(b_token)
-    b_embedding = normalized_embeddings[b_index]
+        
+        a = X[case][1]
+        a_token = matrix_priors.get_synset_and_strip(a)[1]
+        a_index = dictionary.get(a_token)
+        a_embedding = normalized_embeddings[a_index]
 
-    c = X[3]
-    c_token = matrix_priors.get_synset_and_strip(c)[1]
-    c_index = dictionary.get(c_token)
-    c_embedding = normalized_embeddings[c_index]
-     
-    embedding_sim_vector = []
-   # print(primary_embedding)
-   # print(a_embedding)
-    embedding_sim_vector.append(np.dot(primary_embedding, a_embedding))
-    embedding_sim_vector.append(np.dot(primary_embedding, b_embedding))
-    embedding_sim_vector.append(np.dot(primary_embedding, c_embedding))
+        b = X[case][2]
+        b_token = matrix_priors.get_synset_and_strip(b)[1]
+        b_index = dictionary.get(b_token)
+        b_embedding = normalized_embeddings[b_index]
 
-    if(np.argmax(embedding_sim_vector) == X[1:].index(y)):
-        total_correct_w2v += 1
-        if '_' in primary:
-            w2v_bigram_correct += 1
-        else:
-            w2v_unigram_correct += 1
+        c = X[case][3]
+        c_token = matrix_priors.get_synset_and_strip(c)[1]
+        c_index = dictionary.get(c_token)
+        c_embedding = normalized_embeddings[c_index]
+         
+        embedding_sim_vector = []
+       # print(primary_embedding)
+       # print(a_embedding)
+        embedding_sim_vector.append(np.dot(primary_embedding, a_embedding))
+        embedding_sim_vector.append(np.dot(primary_embedding, b_embedding))
+        embedding_sim_vector.append(np.dot(primary_embedding, c_embedding))
 
-    #formatted_embedding = [embeddings[p_index]
-    #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
-    output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
-    output_vector = np.reshape(output_vector, (len(output_vector[0])))
-    
+        if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
+            total_correct_w2v += 1
+            if '_' in primary:
+                w2v_bigram_correct += 1
+            else:
+                w2v_unigram_correct += 1
 
-    output_sim_vector = []
+        #formatted_embedding = [embeddings[p_index]
+        #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
+        output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
+        output_vector = np.reshape(output_vector, (len(output_vector[0])))
+        
 
-    output_sim_vector.append(output_vector[a_index])
-    output_sim_vector.append(output_vector[b_index])
-    output_sim_vector.append(output_vector[c_index])
+        output_sim_vector = []
 
-    if(np.argmax(output_sim_vector) == X[1:].index(y)):
-        total_correct_output += 1
-        if '_' in primary:
-            output_bigram_correct += 1
-        else:
-            output_unigram_correct += 1
-    else:
-        if X[0] in X[1:]:
+        output_sim_vector.append(output_vector[a_index])
+        output_sim_vector.append(output_vector[b_index])
+        output_sim_vector.append(output_vector[c_index])
+
+        if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
             total_correct_output += 1
             if '_' in primary:
                 output_bigram_correct += 1
             else:
-                output_unigram_correct += 1 
+                output_unigram_correct += 1
+        else:
+            if X[case][0] in X[case][1:]:
+                total_correct_output += 1
+                if '_' in primary:
+                    output_bigram_correct += 1
+                else:
+                    output_unigram_correct += 1 
 
-    if '_' in primary:
-        total_bigram += 1
-    else:
-        total_unigram += 1
+        if '_' in primary:
+            total_bigram += 1
+        else:
+            total_unigram += 1
 
     """
     print(X[case])
@@ -259,7 +261,7 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
     """
         
         
-    return total_correct_w2v/len(test), total_correct_output/len(test)
+    return total_correct_w2v/len(X), total_correct_output/len(X)
     #, [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
 
 
@@ -304,6 +306,7 @@ def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
 
     return (total_correct_wordnet/len(test))
 
+"""
 
 if __name__=="__main__":
     bigram_filename = '/home/justin/Data/fil9'
@@ -380,17 +383,15 @@ if __name__=="__main__":
     accs = np.divide(accs, len(test))
     accs_pretrain = np.divide(accs_pretrain, len(test))
        
-    """
 
-    for test_num in range(len(test)):
-        empirical_matrix = matrix_priors.fill_empirical_matrix(X, y, train[test_num], rows_dict)
+    #for test_num in range(len(test)):
+    #    empirical_matrix = matrix_priors.fill_empirical_matrix(X, y, train[test_num], rows_dict)
+    #
+    #    next_empirical_acc = evaluate_empirical(empirical_matrix, X, y, test[test_num], rows_dict)
+    #    print("next empirical acc: ", next_empirical_acc)
+    #    empirical_acc += next_empirical_acc
+    #empirical_acc /= len(test)
 
-        next_empirical_acc = evaluate_empirical(empirical_matrix, X, y, test[test_num], rows_dict)
-        print("next empirical acc: ", next_empirical_acc)
-        empirical_acc += next_empirical_acc
-    empirical_acc /= len(test)
-
-    """
 
     print("Averaged accuracy of word2vec is:")
     print(str(word2vec_acc))
@@ -421,16 +422,14 @@ if __name__=="__main__":
     print("Averaged pretrain accs bigram/unigram")
     print(accs_pretrain)
 
-    """
-    print("\nTotal accuracy of matrix is:")
-    print(str(matrix_correct_counter / total_row_counter))
+    #print("\nTotal accuracy of matrix is:")
+    #print(str(matrix_correct_counter / total_row_counter))
 
-    print("\nTotal accuracy of word2vec matrix is:")
-    print(str(word2vec_matrix_correct_counter / total_row_counter)) 
+    #print("\nTotal accuracy of word2vec matrix is:")
+    #print(str(word2vec_matrix_correct_counter / total_row_counter)) 
 
-    print("\nTotal accuracy of empirical matrix is:")
-    print(str(empirical_matrix_correct_counter / total_row_counter))
-    """
+    #print("\nTotal accuracy of empirical matrix is:")
+    #print(str(empirical_matrix_correct_counter / total_row_counter))
 
 
 
@@ -439,7 +438,7 @@ if __name__=="__main__":
     print("Looking at disagreeance in data")
 
     #instances_disagree(X, y)
-    
+"""    
 
 
 
