@@ -265,47 +265,6 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
     #, [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
 
 
-def evaluate_wordnet(X, y, test, dictionary, rows_dict=None):
-
-    # test is a one-dimensional array.
-    # Run this as many times as you want, average the accuracy.
-
-    total_correct_w2v = 0
-    total_correct_wordnet = 0
-
-    
-    for case in test:
-
-        primary = X[case][0] 
-
-        primary_syn = matrix_priors.get_synset_and_strip(primary)[0]
-        
-        a = X[case][1]
-        a_syn = matrix_priors.get_synset_and_strip(a)[0]
-
-        b = X[case][2]
-        b_syn = matrix_priors.get_synset_and_strip(b)[0]
-
-        c = X[case][3]
-        c_syn = matrix_priors.get_synset_and_strip(c)[0]
-         
-        wordnet_sim_vector = []
-        wordnet_sim_vector.append(primary_syn.path_similarity(a_syn))
-        wordnet_sim_vector.append(primary_syn.path_similarity(b_syn))
-        wordnet_sim_vector.append(primary_syn.path_similarity(c_syn))
-    
-        if(np.argmax(wordnet_sim_vector) == X[case][1:].index(y[case])):
-            total_correct_wordnet += 1
-            #print("!!!!!!!!!!!!!!!!")
-        """
-        print(X[case])
-        print("ACTUAL ANSWER: ", y[case])
-
-        print("WORDNET MAX: ", str(X[case][np.argmax(wordnet_sim_vector)+1]))
-        """
-
-    return (total_correct_wordnet/len(test))
-
 """
 
 if __name__=="__main__":
