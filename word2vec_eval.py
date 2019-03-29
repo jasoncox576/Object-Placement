@@ -9,117 +9,7 @@ import numpy as np
 import matrix_priors
 import random
 
-print("Loading SPACY in eval..")
-#nlp = spacy.load('en_core_web_lg')
-nlp = matrix_priors.nlp
-print("Loading complete: eval beginning")
-
-#important columns:
-#27-31 starting from 0
-
-matrix_correct_counter = 0
-
-random_correct_counter = 0
-
-
-MODEL_EXISTS_ALREADY = True
-
-def roll_probs(matrix_prob_vector):
-
-        matrix_prob_vector /= np.sum(matrix_prob_vector) 
-        
-        selected_index = np.argmax(np.random.multinomial(1, matrix_prob_vector))
-    
-        return selected_index
-
-
-filename = "official_results.csv"
-print("trying to get prior matrix")
-
-
-"""
-def verify_and_clean_data():
-
-    #Data is 'bad' if object A is not placed with itself
-    #when there is an opportunity to do so
-
-    #mistakes is the number of times this occurs,
-    #total_sames is the number of times an object is already
-    #on the shelf
-
-    #Will remove all of the bad instances from the csv, plus all
-    #the instances by workers flagged as 'bad'.
-    mistakes = 0
-    total_sames = 0
-
-    bad_users = []
-
-    with open(filename) as csvfile:
-        #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-        reader = csv.reader(csvfile)
-        writer = csv.writer(csvfile)
-
-        for row in reader:
-            if reader.line_num == 1:
-                continue
-
-            row_result = row[27:32]
-
-            workerID = row[15]
-
-            answer_label = row_result[4]
-            answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
-            
-            if row_result[0] in row_result[1:]:
-                if row_result[0] != row_result[answer]:
-                    # In this case, the piece of data and worker are bad.
-                    mistakes += 1
-                    bad_users.append(workerID)
-                    writer.writerow(row)
-                    #This deletes the row
-
-                total_sames += 1
-        
-        #Once we have all of the bad users, second pass through the data to clear
-        #out all of the instances by those users.
-        for row in reader:
-            workerID = row[15]
-
-            if reader.line_num == 1:
-                continue
-            
-            if workerID in bad_users:
-                writer.writerow(row)
-                #This deletes the row
-
-    return mistakes, total_sames, mistakes/total_sames
-
-
-def instances_disagree(X, y):
-   
-    used_indices = []
-    
-    for x1 in range(len(X)):
-        if x1 in used_indices: continue
-        class_disagreements = [(X[x1], y[x1])]
-        for x2 in range(len(X)):
-            if (x2 in used_indices) or (x1 == x2): continue
-            if (X[x1] == X[x2]) and (y[x1] != y[x2]):
-                class_disagreements.append((X[x2], y[x2]))
-                used_indices.append(x2)
-        used_indices.append(x1)
-        print("CLASS DISAGREEMENTS----------------")
-        print(class_disagreements)
-    
-
-
-"""
-
-
-
 def evaluate_empirical(matrix, X, y, test, rows_dict):
-    
-
     total_correct = 0
 
     for instance in test:
@@ -157,18 +47,14 @@ def eval_random(X, y, test):
     
     return total_correct / len(test)
 
+def get_word(in_word, dictionary, synset_dic, embeddings):
+  index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
+  embed = embeddings[index]
+  n_embed = embed/ np.linalg.norm(embed)
+  return index, embed, n_embed
 
-def retrain_model(filename, X, y, train, dictionaries):
-
-    train_X = [X[x] for x in train]
-    train_y = [y[x] for x in train]
-
-    embeddings, weights = word2vec_basic('log', filename, retraining=True, X=train_X, y=train_y, dictionaries=dictionaries)
-
-    return embeddings, weights
-
-
-def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
+def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_dict=None):
+    out_file = open(outfile_name, 'w') 
 
     total_correct_w2v = 0
     total_correct_output = 0
@@ -181,47 +67,37 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
     w2v_bigram_correct = 0
     output_bigram_correct = 0
 
-    normalized_embeddings = normalize_embeddings(embeddings) 
-
     for case in range(len(X)):
+        p = X[case][0]          #primary
+        a = X[case][1]          #choice a
+        b = X[case][2]          #choice b
+        c = X[case][3]          #choice c
+        z = y[case]             #answer
 
-        primary = X[case][0] 
-        primary_token = matrix_priors.get_synset_and_strip(primary)[1]
-        p_index = dictionary.get(primary_token)
-        primary_embedding = normalized_embeddings[p_index]
-
-        
-        a = X[case][1]
-        a_token = matrix_priors.get_synset_and_strip(a)[1]
-        a_index = dictionary.get(a_token)
-        a_embedding = normalized_embeddings[a_index]
-
-        b = X[case][2]
-        b_token = matrix_priors.get_synset_and_strip(b)[1]
-        b_index = dictionary.get(b_token)
-        b_embedding = normalized_embeddings[b_index]
-
-        c = X[case][3]
-        c_token = matrix_priors.get_synset_and_strip(c)[1]
-        c_index = dictionary.get(c_token)
-        c_embedding = normalized_embeddings[c_index]
+        p_index, p_embedding, p_nembedding = get_word(p, dictionary, matrix_priors, embeddings)
+        a_index, a_embedding, a_nembedding = get_word(a, dictionary, matrix_priors, embeddings)
+        b_index, b_embedding, b_nembedding = get_word(b, dictionary, matrix_priors, embeddings)
+        c_index, c_embedding, c_nembedding = get_word(c, dictionary, matrix_priors, embeddings)
+        z_index, z_embedding, z_nembedding = get_word(z, dictionary, matrix_priors, embeddings)
          
         embedding_sim_vector = []
-       # print(primary_embedding)
-       # print(a_embedding)
-        embedding_sim_vector.append(np.dot(primary_embedding, a_embedding))
-        embedding_sim_vector.append(np.dot(primary_embedding, b_embedding))
-        embedding_sim_vector.append(np.dot(primary_embedding, c_embedding))
+        embedding_sim_vector.append(np.dot(p_nembedding, a_nembedding))
+        embedding_sim_vector.append(np.dot(p_nembedding, b_nembedding))
+        embedding_sim_vector.append(np.dot(p_nembedding, c_nembedding))
+
+        indices = [a_index, b_index, c_index]
+        answer_index = X[case][1:].index(y[case])
+        machine_answer_index = np.argmax(embedding_sim_vector)
+
+        out_file.write("%d, %d, %d, %d, %d, %d, %d, %d, %s, %s, %s, %s, %s \n" % (p_index, a_index, b_index, c_index, z_index, indices[machine_answer_index], answer_index, machine_answer_index, p, a, b, c, z))
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct_w2v += 1
-            if '_' in primary:
+            if '_' in p:
                 w2v_bigram_correct += 1
             else:
                 w2v_unigram_correct += 1
 
-        #formatted_embedding = [embeddings[p_index]
-        #output_vector = tf.matmul([embeddings[p_index]], weights, transpose_b=True)
         output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
         output_vector = np.reshape(output_vector, (len(output_vector[0])))
         
@@ -234,33 +110,25 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, rows_dict=None):
 
         if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
             total_correct_output += 1
-            if '_' in primary:
+            if '_' in p:
                 output_bigram_correct += 1
             else:
                 output_unigram_correct += 1
         else:
             if X[case][0] in X[case][1:]:
                 total_correct_output += 1
-                if '_' in primary:
+                if '_' in p:
                     output_bigram_correct += 1
                 else:
                     output_unigram_correct += 1 
 
-        if '_' in primary:
+        if '_' in p:
             total_bigram += 1
         else:
             total_unigram += 1
-
-    """
-    print(X[case])
-    print("ACTUAL ANSWER: ", y[case])
-
-    print("OUTPUT MAX: ", str(X[case][np.argmax(output_sim_vector)+1]))
-    print(output_sim_vector)
-    print("=========================")
-    """
         
-        
+    out_file.close();
+
     return total_correct_w2v/len(X), total_correct_output/len(X)
     #, [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
 
@@ -398,12 +266,5 @@ if __name__=="__main__":
 
     #instances_disagree(X, y)
 """    
-
-
-
-
-
-
-
 
 
