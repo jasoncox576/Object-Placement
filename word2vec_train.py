@@ -1,7 +1,7 @@
 from word2vec_basic import *
 
 def train_original_model(filename):
-    word2vec_basic('log', filename, retraining=False, X=None, y=None, dictionaries=None)
+    word2vec_turk('log', filename, retraining=False, X=None, y=None, dictionaries=None)
     return
 
 if __name__=="__main__":
