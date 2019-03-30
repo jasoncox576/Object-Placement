@@ -3,7 +3,7 @@ import spacy
 from nltk.corpus import wordnet as wn
 from sklearn.model_selection import StratifiedKFold
 from object_placement_turk import *
-from word2vec_basic import *
+#from word2vec_basic import *
 from word2vec_train import *
 import numpy as np
 import matrix_priors
@@ -48,7 +48,8 @@ def eval_random(X, y, test):
     return total_correct / len(test)
 
 def get_word(in_word, dictionary, synset_dic, embeddings):
-  index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
+  #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
+  index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
   embed = embeddings[index]
   n_embed = embed/ np.linalg.norm(embed)
   return index, embed, n_embed
@@ -128,6 +129,7 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_
             total_unigram += 1
         
     out_file.close();
+
 
     return total_correct_w2v/len(X), total_correct_output/len(X)
     #, [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]

@@ -108,33 +108,41 @@ def normalize_embeddings(embeddings):
 
         return normalized_embeddings.eval()
 
-def bigram_embedding_lookup(embeddings, train_inputs):
+def bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary):
 
+    """
+    reverse dictionary: token integer ---> word string
+    """
 
     embeds = []
 
-    length = tf.shape(train_inputs)[0]
+    sess = tf.Session()
+    with sess.as_default():
+        length = tf.shape(train_inputs)[0]
 
-    for index in range(length):
-        w1 = train_inputs[index][0]
-        w2 = train_inputs[index][1]
-        if w2 == None:
-            embeds.append(embeddings[w1])
-        else:
-            embed1 = embeddings[w1]
-            embed2 = embeddings[w2]
-            
-            averaged_embed = tf.math.divide(tf.math.add(embed1, embed2),2)
+        for index in range(length.eval()):
 
-            embeds.append(averaged_embed)
-   
-    return embeds
+            word = reverse_dictionary.get(train_inputs[index])
+            if '_' in word:
+                middle = word.index('_') 
+                w1 = word[:middle]
+                w2 = word[middle+1:]
+    
+                embed1 = embeddings[reverse_dictionary.get(w1)]
+                embed2 = embeddings[reverse_dictionary.get(w2)]
+                
+                averaged_embed = tf.math.divide(tf.math.add(embed1, embed2),2)
+                embeds.append(averaged_embed)
+            else:
+                embeds.append(embeddings[train_inputs[index]])
+                
+       
+        return tf.convert_to_tensor(embeds)
         
 
+"""
 def create_bigram_batch_tuple(dictionary, word):
-    """
-    Misnomer. not an actual tuple. just a 2-array
-    """
+    #Misnomer. not an actual tuple. just a 2-array
 
     if '_' in word:
         middle = word.index('_') 
@@ -143,8 +151,9 @@ def create_bigram_batch_tuple(dictionary, word):
         return [dictionary.get(w1), dictionary.get(w2)]
 
     else:
-        return [dictionary.get(w1), None]
+        return [dictionary.get(word), None]
 
+"""
         
 
 
@@ -178,8 +187,8 @@ def generate_batch(batch_size, num_skips, skip_window, data):
   return batch, labels
 
 
+"""
 def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False):
-  """Example of building, training and visualizing a word2vec model."""
   # Create the directory for TensorBoard variables if there is not.
   if not os.path.exists(log_dir):
     os.makedirs(log_dir)
@@ -242,7 +251,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
 
     # Input data.
     with tf.name_scope('inputs'):
-      train_inputs = tf.placeholder(tf.int32, shape=[None])
+      #train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
+      train_inputs = tf.placeholder(tf.int32, shape=[None,2])
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
@@ -252,8 +262,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
       with tf.name_scope('embeddings'):
         embeddings = tf.Variable(
             tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
-        #embed = tf.nn.embedding_lookup(embeddings, train_inputs)
-        embed = bigram_embedding_lookup(embeddings, train_inputs)
+        embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+        #embed = bigram_embedding_lookup(embeddings, train_inputs)
 
 
       # Construct the variables for the NCE loss
@@ -277,7 +287,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
               weights=nce_weights,
               biases=nce_biases,
               labels=train_labels,
-              inputs=graph.get_tensor_by_name("embeddings/embedding_lookup:0"),
+              #inputs=embed,
+              inputs=embed,
               num_sampled=num_sampled,
               num_classes=vocabulary_size))
     
@@ -334,7 +345,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
     average_loss = 0
     print(valid_embeddings.eval())
     for step in xrange(num_steps):
-      batch_inputs = np.zeros([batch_size])
+      batch_inputs = np.zeros([batch_size, 2])
       batch_labels = np.zeros([batch_size, 1])
     
       if retraining:
@@ -342,22 +353,25 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
           for i in range(len(inputs)):
               #batch_inputs[i] = unused_dictionary.get(inputs[i])
               #batch_labels[i,0] = unused_dictionary.get(labels[i])
-              batch_inputs[i] = create_bigram_batch_tuple(unused_dictionary, inputs[i])
+              #batch_inputs[i] = create_bigram_batch_tuple(unused_dictionary, inputs[i])
+              batch_inputs[i] = unused_dictionary.get(inputs[i])
               label = labels[i]
               if '_' in label:
                   middle = label.index('_')
                   w1 = label[:middle]
                   w2 = label[middle+1:]
-                  batch_labels.append([unused_dictionary.get(w1)])
-                  batch_labels.append([unused_dictionary.get(w2)])
+                  batch_labels = np.append(batch_labels, [unused_dictionary.get(w1)])
+                  batch_labels = np.append(batch_labels, [unused_dictionary.get(w2)])
               else:
-                  batch_labels.append([unused_dictionary.get(w1)])
+                  batch_labels = np.append(batch_labels, [unused_dictionary.get(label)])
 
               # batch_labels[i,0] = create_bigram_batch_tuple(unused_dictionary, labels[i])  
       
       else: batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
     
-
+      print("=============================================")
+      print(train_inputs.shape().eval())
+      
       feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
       # Define metadata variable.
@@ -403,6 +417,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
     #return final_embeddings, 
     return embeddings.eval(), nce_weights.eval()
 
+"""
 
 def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False):
   vocabulary = read_data_nonzip(filename)	# = read_data(filename)
@@ -449,7 +464,8 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
     # Input data.
     with tf.name_scope('inputs'):
-      train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
+      #train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
+      train_inputs = tf.placeholder(tf.int32, shape=[None])
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
@@ -461,6 +477,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
             tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
         #embed = tf.nn.
         embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+        #embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
 
 
       # Construct the variables for the NCE loss
@@ -484,7 +501,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
               weights=nce_weights,
               biases=nce_biases,
               labels=train_labels,
-              inputs=graph.get_tensor_by_name("embeddings/embedding_lookup:0"),
+              inputs=embed,
               num_sampled=num_sampled,
               num_classes=vocabulary_size))
     
@@ -509,7 +526,9 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
 
   # Step 5: Begin training.
-  num_steps = 1000
+  if retraining:
+    num_steps = 10000
+  else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
@@ -519,15 +538,42 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     init.run()
     print('Initialized')
 
-    saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
-    print("MODEL RESTORED")
+    if retraining or get_embeddings:
+        saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
+        print("MODEL RESTORED")
+        if get_embeddings:
+            return embeddings.eval(), nce_weights.eval()
 
     print("LEN EMBEDDINGS")
     print(tf.size(embeddings), tf.size(embeddings[0]))
     average_loss = 0
 
-    for step in xrange(num_steps):    
-      batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+    for step in xrange(num_steps):
+      #batch_inputs = np.zeros([batch_size])
+      batch_inputs = np.array([])
+      #batch_labels = np.zeros([batch_size, 1])
+      batch_labels = np.array([None, 1])
+
+      if retraining:
+          inputs, labels = process_inputs(X, y)
+          #print(inputs, labels)
+          for i in range(len(inputs)):
+              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+              label = labels[i]
+              if '_' in label:
+                  middle = label.index('_')
+                  w1 = label[:middle]
+                  w2 = label[middle+1:]
+                  batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w1)]))
+                  batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w2)]))
+                  #must add an extra element to batch_inputs
+                  batch_inputs = np.append(batch_inputs, batch_inputs[-1])
+              else:
+                  batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(label)]))
+          print(tf.shape(batch_inputs).eval())
+          print(tf.shape(batch_labels).eval())
+      else: batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+      #batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
       feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
       print(batch_labels)
 
