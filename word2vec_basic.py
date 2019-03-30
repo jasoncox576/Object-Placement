@@ -527,7 +527,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
   # Step 5: Begin training.
   if retraining:
-    num_steps = 10000
+    num_steps = 2000
   else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
@@ -550,9 +550,9 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
     for step in xrange(num_steps):
       #batch_inputs = np.zeros([batch_size])
-      batch_inputs = np.array([])
+      batch_inputs = np.array([], dtype=int)
       #batch_labels = np.zeros([batch_size, 1])
-      batch_labels = np.array([None, 1])
+      batch_labels = np.array([], dtype=int)
 
       if retraining:
           inputs, labels = process_inputs(X, y)
@@ -565,17 +565,23 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
                   w1 = label[:middle]
                   w2 = label[middle+1:]
                   batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w1)]))
+                  #print(unused_dictionary.get(w1))
                   batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w2)]))
+                  #print(unused_dictionary.get(w2))
                   #must add an extra element to batch_inputs
                   batch_inputs = np.append(batch_inputs, batch_inputs[-1])
               else:
                   batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(label)]))
-          print(tf.shape(batch_inputs).eval())
-          print(tf.shape(batch_labels).eval())
+
+          #for elem in batch_labels:
+              #print(elem)
+          #print(tf.shape(batch_inputs).eval())
+          #print(tf.shape(batch_labels).eval())
       else: batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+      batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
       #batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
       feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
-      print(batch_labels)
+      #print("BATCH LABELS: ", batch_labels)
 
       # Define metadata variable.
       run_metadata = tf.RunMetadata()
