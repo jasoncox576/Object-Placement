@@ -108,6 +108,45 @@ def normalize_embeddings(embeddings):
 
         return normalized_embeddings.eval()
 
+def bigram_embedding_lookup(embeddings, train_inputs):
+
+
+    embeds = []
+
+    length = tf.shape(train_inputs)[0]
+
+    for index in range(length):
+        w1 = train_inputs[index][0]
+        w2 = train_inputs[index][1]
+        if w2 == None:
+            embeds.append(embeddings[w1])
+        else:
+            embed1 = embeddings[w1]
+            embed2 = embeddings[w2]
+            
+            averaged_embed = tf.math.divide(tf.math.add(embed1, embed2),2)
+
+            embeds.append(averaged_embed)
+   
+    return embeds
+        
+
+def create_bigram_batch_tuple(dictionary, word):
+    """
+    Misnomer. not an actual tuple. just a 2-array
+    """
+
+    if '_' in word:
+        middle = word.index('_') 
+        w1 = word[:middle]
+        w2 = word[middle+1:]
+        return [dictionary.get(w1), dictionary.get(w2)]
+
+    else:
+        return [dictionary.get(w1), None]
+
+        
+
 
 # Step 3: Function to generate a training batch for the skip-gram model.
 def generate_batch(batch_size, num_skips, skip_window, data):
@@ -213,7 +252,8 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
       with tf.name_scope('embeddings'):
         embeddings = tf.Variable(
             tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
-        embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+        #embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+        embed = bigram_embedding_lookup(embeddings, train_inputs)
 
 
       # Construct the variables for the NCE loss
@@ -300,8 +340,20 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
       if retraining:
           inputs, labels = process_inputs(X, y)
           for i in range(len(inputs)):
-              batch_inputs[i] = unused_dictionary.get(inputs[i])
-              batch_labels[i,0] = unused_dictionary.get(labels[i])
+              #batch_inputs[i] = unused_dictionary.get(inputs[i])
+              #batch_labels[i,0] = unused_dictionary.get(labels[i])
+              batch_inputs[i] = create_bigram_batch_tuple(unused_dictionary, inputs[i])
+              label = labels[i]
+              if '_' in label:
+                  middle = label.index('_')
+                  w1 = label[:middle]
+                  w2 = label[middle+1:]
+                  batch_labels.append([unused_dictionary.get(w1)])
+                  batch_labels.append([unused_dictionary.get(w2)])
+              else:
+                  batch_labels.append([unused_dictionary.get(w1)])
+
+              # batch_labels[i,0] = create_bigram_batch_tuple(unused_dictionary, labels[i])  
       
       else: batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
     
@@ -397,7 +449,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
     # Input data.
     with tf.name_scope('inputs'):
-      train_inputs = tf.placeholder(tf.int32, shape=[None])
+      train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
@@ -407,6 +459,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
       with tf.name_scope('embeddings'):
         embeddings = tf.Variable(
             tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+        #embed = tf.nn.
         embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
 
