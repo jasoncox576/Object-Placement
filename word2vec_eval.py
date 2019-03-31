@@ -49,9 +49,21 @@ def eval_random(X, y, test):
 
 def get_word(in_word, dictionary, synset_dic, embeddings):
   #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
-  index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
-  embed = embeddings[index]
-  n_embed = embed/ np.linalg.norm(embed)
+  if '_' in in_word:
+      middle = in_word.index('_')
+      index1 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[:middle])[1])
+      index2 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[middle+1:])[1])
+    
+      embed = (embeddings[index1] + embeddings[index2])/2
+      n_embed = embed/np.linalg.norm(embed) 
+
+      index = 0
+      print("BIGRAM WORD! TOOK MEAN EMBEDDING of ", in_word[:middle], "and", in_word[middle+1:])
+       
+  else:
+      index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+      embed = embeddings[index]
+      n_embed = embed/ np.linalg.norm(embed)
   return index, embed, n_embed
 
 def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_dict=None):
@@ -98,7 +110,7 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_
                 w2v_bigram_correct += 1
             else:
                 w2v_unigram_correct += 1
-
+        
         output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
         output_vector = np.reshape(output_vector, (len(output_vector[0])))
         

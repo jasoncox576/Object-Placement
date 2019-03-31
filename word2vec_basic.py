@@ -295,7 +295,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
 
   # Step 5: Begin training.
   if retraining:
-    num_steps = 10000
+    num_steps = 2001
   else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
@@ -501,7 +501,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
   # Step 5: Begin training.
   if retraining:
-    num_steps = 2000
+    num_steps = 401
   else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
@@ -587,7 +587,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
       if step == (num_steps - 1):
         writer.add_run_metadata(run_metadata, 'step%d' % step)
 
-      if step % 2000 == 0:
+      if step % 100 == 0:
         if step > 0:
           average_loss /= 2000
         # The average loss is an estimate of the loss over the last 2000

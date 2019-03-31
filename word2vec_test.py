@@ -16,6 +16,8 @@ if __name__=="__main__":
     accs = np.zeros(4)  
 
     X, y = get_train_test(turk_data_filename) 
+    print(len(X))
+    print(len(y))
   
     word2vec_acc = 0
     word2vec_alt_acc = 0
