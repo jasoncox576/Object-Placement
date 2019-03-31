@@ -109,35 +109,9 @@ def normalize_embeddings(embeddings):
         return normalized_embeddings.eval()
 
 def bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary):
-
-    """
-    reverse dictionary: token integer ---> word string
-    """
-
-    embeds = []
-
-    sess = tf.Session()
-    with sess.as_default():
-        length = tf.shape(train_inputs)[0]
-
-        for index in range(length.eval()):
-
-            word = reverse_dictionary.get(train_inputs[index])
-            if '_' in word:
-                middle = word.index('_') 
-                w1 = word[:middle]
-                w2 = word[middle+1:]
-    
-                embed1 = embeddings[reverse_dictionary.get(w1)]
-                embed2 = embeddings[reverse_dictionary.get(w2)]
-                
-                averaged_embed = tf.math.divide(tf.math.add(embed1, embed2),2)
-                embeds.append(averaged_embed)
-            else:
-                embeds.append(embeddings[train_inputs[index]])
-                
-       
-        return tf.convert_to_tensor(embeds)
+    embed1 = tf.nn.embedding_lookup(embeddings, train_inputs[:, 0])
+    embed2 = tf.nn.embedding_lookup(embeddings, train_inputs[:, 1])
+    return (embed1 + embed2) / 2
         
 
 """
@@ -465,7 +439,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     # Input data.
     with tf.name_scope('inputs'):
       #train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
-      train_inputs = tf.placeholder(tf.int32, shape=[None])
+      train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
@@ -476,8 +450,8 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
         embeddings = tf.Variable(
             tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
         #embed = tf.nn.
-        embed = tf.nn.embedding_lookup(embeddings, train_inputs)
-        #embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
+        #embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+        embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
 
 
       # Construct the variables for the NCE loss
@@ -577,10 +551,26 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
               #print(elem)
           #print(tf.shape(batch_inputs).eval())
           #print(tf.shape(batch_labels).eval())
-      else: batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+      else:
+          batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+
+      # Deal with bigrams
+      modded_batch_inputs = []
+      for i in range(len(batch_inputs)):
+          w = reverse_dictionary[batch_inputs[i]]
+          if '_' in w:
+              w1, w2 = w.split("_")
+          else:
+              w1, w2 = w, w
+          try:
+              modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
+          except KeyError:
+              modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
+      modded_batch_inputs = np.array(modded_batch_inputs)
+
       batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
       #batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-      feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+      feed_dict = {train_inputs: modded_batch_inputs, train_labels: batch_labels}
       #print("BATCH LABELS: ", batch_labels)
 
       # Define metadata variable.
