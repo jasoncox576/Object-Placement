@@ -21,6 +21,7 @@ def instances_disagree(X, y):
         print(class_disagreements)
 
 
+
 def make_new_turk_csv(bad_rows):
     """
     Takes all of the messed up rows from

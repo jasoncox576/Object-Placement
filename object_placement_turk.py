@@ -1,8 +1,34 @@
 from sklearn.model_selection import StratifiedKFold
 import matrix_priors
-
+import numpy as np
 import csv
 import sys
+
+
+def instances_disagree_process(X, y):
+
+    print("Discarding bad instances....")
+    used_indices = []
+    new_X = []
+    new_y = []
+
+    for x1 in range(len(X)):
+        if x1 in used_indices: continue
+        answer_count = [0,0,0]
+        answer_count[X[x1][1:].index(y[x1])] += 1
+
+        for x2 in range(len(X)):
+            if (x2 in used_indices) or (x1 == x2): continue
+            if(X[x1] == X[x2]):
+                answer_count[X[x2][1:].index(y[x2])] += 1
+                used_indices.append(x2)
+        used_indices.append(x1)
+        if max(answer_count) > 2:
+            new_X.append(X[x1])
+            new_y.append(X[x1][np.argmax(answer_count)+1])
+    print("Finished discarding bad instances.")
+    return new_X, new_y
+
 
 def get_train_test(filename):
 
@@ -48,6 +74,8 @@ def get_train_test(filename):
           #Fetch the answer to the most recent instance
           answer_word = X[-1][answer]
           y.append(answer_word)
+
+
           if not answer_word in answer_word_set:
             sys.exit()
           
@@ -65,4 +93,5 @@ def get_train_test(filename):
       print(train, test)
   """
 
+  #X, y = instances_disagree_process(X, y) 
   return X, y

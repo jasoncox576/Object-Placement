@@ -7,7 +7,8 @@ if __name__=="__main__":
     #bigram_filename = '/home/justin/Data/fil9_bigram'
     #bigram_filename = 'modified_text'
     bigram_filename = 'modified_text'
-    turk_data_filename = 'cleaned_results.csv'
+    #turk_data_filename = 'cleaned_results.csv'
+    turk_data_filename = 'official_results.csv'
 
     bigram_dictionaries = get_pretrain_dictionaries(bigram_filename) 
     bigram_unused_dictionary = bigram_dictionaries[2]

@@ -48,23 +48,24 @@ def eval_random(X, y, test):
     return total_correct / len(test)
 
 def get_word(in_word, dictionary, synset_dic, embeddings):
-  #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
-  if '_' in in_word:
-      middle = in_word.index('_')
-      index1 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[:middle])[1])
-      index2 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[middle+1:])[1])
-    
-      embed = (embeddings[index1] + embeddings[index2])/2
-      n_embed = embed/np.linalg.norm(embed) 
+    #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
+    """
+    if '_' in in_word:
+          middle = in_word.index('_')
+          index1 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[:middle])[1])
+          index2 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[middle+1:])[1])
+        
+          embed = (embeddings[index1] + embeddings[index2])/2
+          n_embed = embed/np.linalg.norm(embed) 
 
-      index = 0
-      print("BIGRAM WORD! TOOK MEAN EMBEDDING of ", in_word[:middle], "and", in_word[middle+1:])
-       
-  else:
-      index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
-      embed = embeddings[index]
-      n_embed = embed/ np.linalg.norm(embed)
-  return index, embed, n_embed
+          index = 0
+           
+      else:
+    """
+    index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+    embed = embeddings[index]
+    n_embed = embed/ np.linalg.norm(embed)
+    return index, embed, n_embed
 
 def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_dict=None):
     out_file = open(outfile_name, 'w') 
@@ -102,7 +103,8 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_
         answer_index = X[case][1:].index(y[case])
         machine_answer_index = np.argmax(embedding_sim_vector)
 
-        out_file.write("%d, %d, %d, %d, %d, %d, %d, %d, %s, %s, %s, %s, %s \n" % (p_index, a_index, b_index, c_index, z_index, indices[machine_answer_index], answer_index, machine_answer_index, p, a, b, c, z))
+        #out_file.write("%d, %d, %d, %d, %d, %d, %d, %d, %s, %s, %s, %s, %s \n" % (p_index, a_index, b_index, c_index, z_index, indices[machine_answer_index], answer_index, machine_answer_index, p, a, b, c, z))
+        out_file.write("%s, %s \n" % (p, z))
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct_w2v += 1
