@@ -632,39 +632,26 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
         # batches.
         print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
         average_loss = 0
+
     if retraining:
 
         itemplaceholder = tf.placeholder(tf.int32, [None])
-        nexttoplaceholder = tf.placeholder(tf.int32, [None,1])
+        nexttoplaceholder = tf.placeholder(tf.int32, [None])
 
         x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
         y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
 
-        new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(tf.reshape(y,[-1,embedding_size]), axis=1), axis=1)
+        new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
 
         new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
         #batch_labels = np.reshape(batch_labels, (len(batch_labels)))
 
         for step in xrange(num_steps):
-              run_metadata = tf.RunMetadata()
+              feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
 
-
-
-
-
-
-              feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
-
-              _, summary, loss_val = session.run([new_optimizer, merged, new_loss],
-                                         feed_dict=feed_dict,
-                                         run_metadata=run_metadata)
+              _, loss_val = session.run([new_optimizer, new_loss],
+                                         feed_dict=feed_dict)
               average_loss += loss_val
-
-              # Add returned summaries to writer in each step.
-              writer.add_summary(summary, step)
-              # Add metadata to visualize the graph for the last run.
-              if step == (num_steps - 1):
-                writer.add_run_metadata(run_metadata, 'step%d' % step)
 
               if step % 100 == 0:
                 if step > 0:
