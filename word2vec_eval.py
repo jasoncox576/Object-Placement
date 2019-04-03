@@ -47,27 +47,52 @@ def eval_random(X, y, test):
     
     return total_correct / len(test)
 
-def get_word(in_word, dictionary, synset_dic, embeddings):
-    #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
-    """
-    if '_' in in_word:
-          middle = in_word.index('_')
-          index1 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[:middle])[1])
-          index2 = dictionary.get(matrix_priors.get_synset_and_strip(in_word[middle+1:])[1])
+
+def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
+    
+    if bigram_split and '_' in in_word:
+        w1, w2 = in_word.split("_")
+        index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
+        index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
+
+        embed1 = emeddings[index1]
+        embed2 = embeddings[index2]
+
+        n_embed1 = embed / np.linalg.norm(embed1)
+        n_embed2 = embed / np.linalg.norm(embed2)
+
+        embeds = (embed1, embed2)
+        n_embeds = (n_embed1, n_embed2)
+    else:
+        index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+        embed = embeddings[index]
+        n_embed = embed/ np.linalg.norm(embed)
+        embeds = (embed, None) 
+        n_embeds = (n_embed, None)
+        indices = (index, None)
+    return indices, embeds, n_embeds
         
-          embed = (embeddings[index1] + embeddings[index2])/2
-          n_embed = embed/np.linalg.norm(embed) 
+    
 
-          index = 0
-           
-      else:
-    """
-    index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
-    embed = embeddings[index]
-    n_embed = embed/ np.linalg.norm(embed)
-    return index, embed, n_embed
+def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
+    #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
+    if bigram_split and '_' in in_word:
+        w1, w2 = in_word.split("_")
+        index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
+        index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
+    
+        embed = (embeddings[index1] + embeddings[index2])/2
+        n_embed = embed/np.linalg.norm(embed) 
 
-def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_dict=None):
+        indices = (index1,index2)
+    else:
+        index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+        embed = embeddings[index]
+        n_embed = embed/ np.linalg.norm(embed)
+        indices = (index, None)
+    return indices, embed, n_embed
+
+def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
     out_file = open(outfile_name, 'w') 
 
     total_correct_w2v = 0
@@ -88,18 +113,31 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_
         c = X[case][3]          #choice c
         z = y[case]             #answer
 
-        p_index, p_embedding, p_nembedding = get_word(p, dictionary, matrix_priors, embeddings)
-        a_index, a_embedding, a_nembedding = get_word(a, dictionary, matrix_priors, embeddings)
-        b_index, b_embedding, b_nembedding = get_word(b, dictionary, matrix_priors, embeddings)
-        c_index, c_embedding, c_nembedding = get_word(c, dictionary, matrix_priors, embeddings)
-        z_index, z_embedding, z_nembedding = get_word(z, dictionary, matrix_priors, embeddings)
+        p_indices, p_embedding, p_nembedding = get_word_primary(p, dictionary, matrix_priors, embeddings, bigram_split)
+        a_indices, a_embeddings, a_nembeddings = get_word(a, dictionary, matrix_priors, embeddings, bigram_split)
+        b_indices, b_embeddings, b_nembeddings = get_word(b, dictionary, matrix_priors, embeddings, bigram_split)
+        c_indices, c_embeddings, c_nembeddings = get_word(c, dictionary, matrix_priors, embeddings, bigram_split)
+        z_indices, z_embeddings, z_nembeddings = get_word(z, dictionary, matrix_priors, embeddings, bigram_split)
          
-        embedding_sim_vector = []
-        embedding_sim_vector.append(np.dot(p_nembedding, a_nembedding))
-        embedding_sim_vector.append(np.dot(p_nembedding, b_nembedding))
-        embedding_sim_vector.append(np.dot(p_nembedding, c_nembedding))
+        nembeddings = [a_nembeddings, b_nembeddings, c_nembeddings]
 
-        indices = [a_index, b_index, c_index]
+        embedding_sim_vector = []
+        if bigram_split:
+            for embeds in nembeddings:
+                if embeds[1] != None:
+                    sim1 = np.dot(p_nembedding, embeds[0])
+                    sim2 = np.dot(p_nembedding, embeds[1])
+                    embedding_sim_vector.append(np.mean(sim1,sim2))
+                else:
+                    sim = np.dot(p_nembedding, embeds[0])
+                    embedding_sim_vector.append(sim)
+            
+        else:
+            embedding_sim_vector.append(np.dot(p_nembedding, a_nembeddings[0]))
+            embedding_sim_vector.append(np.dot(p_nembedding, b_nembeddings[0]))
+            embedding_sim_vector.append(np.dot(p_nembedding, c_nembeddings[0]))
+
+        indices = [a_indices, b_indices, c_indices]
         answer_index = X[case][1:].index(y[case])
         machine_answer_index = np.argmax(embedding_sim_vector)
 
@@ -113,15 +151,19 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, rows_
             else:
                 w2v_unigram_correct += 1
         
-        output_vector = np.matmul([embeddings[p_index]], np.transpose(weights))
+        output_vector = np.matmul([p_embedding], np.transpose(weights))
         output_vector = np.reshape(output_vector, (len(output_vector[0])))
         
 
         output_sim_vector = []
 
-        output_sim_vector.append(output_vector[a_index])
-        output_sim_vector.append(output_vector[b_index])
-        output_sim_vector.append(output_vector[c_index])
+        for index_set in indices:
+            if index_set[-1] == None:
+                output_sim_vector.append(output_vector[index_set[0]])
+            else:
+                index1, index2 = index_set
+                mean = np.mean([output_vector[index1], output_vector[index2]])
+                output_sim_vector.append(mean)
 
         if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
             total_correct_output += 1

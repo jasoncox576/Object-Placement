@@ -8,21 +8,21 @@ import sys
 def instances_disagree_process(X, y):
 
     print("Discarding bad instances....")
-    used_indices = []
+    used_indices = {}
     new_X = []
     new_y = []
 
     for x1 in range(len(X)):
-        if x1 in used_indices: continue
+        if used_indices.get(x1): continue
         answer_count = [0,0,0]
         answer_count[X[x1][1:].index(y[x1])] += 1
 
         for x2 in range(len(X)):
-            if (x2 in used_indices) or (x1 == x2): continue
+            if (used_indices.get(x2)) or (x1 == x2): continue
             if(X[x1] == X[x2]):
                 answer_count[X[x2][1:].index(y[x2])] += 1
-                used_indices.append(x2)
-        used_indices.append(x1)
+                used_indices[x2] = 1
+        used_indices[x1] = 1
         if max(answer_count) > 2:
             new_X.append(X[x1])
             new_y.append(X[x1][np.argmax(answer_count)+1])

@@ -8,7 +8,7 @@ if __name__=="__main__":
     #bigram_filename = 'modified_text'
     bigram_filename = 'modified_text'
     #turk_data_filename = 'cleaned_results.csv'
-    turk_data_filename = 'official_results.csv'
+    turk_data_filename = 'final_cleaned_results.csv'
 
     bigram_dictionaries = get_pretrain_dictionaries(bigram_filename) 
     bigram_unused_dictionary = bigram_dictionaries[2]
@@ -45,4 +45,12 @@ if __name__=="__main__":
     print("word2vec_alt_acc: ", word2vec_alt_acc)
 
 
+    #Now we retrain using bigram-split method and test.
 
+    print("\nTraining Using Bigram-Split:")
+    embeddings, weights = retrain_model_and_get_embeddings(X, y, bigram_dictionaries, 'modified_text', bigram_split=True)
+    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(X, y, embeddings, weights, bigram_unused_dictionary, "results.csv")
+    print('\n')
+    print("AFTER RETRAINING:::")
+    print("word2vec_acc: ", word2vec_acc)
+    print("word2vec_alt_acc: ", word2vec_alt_acc)

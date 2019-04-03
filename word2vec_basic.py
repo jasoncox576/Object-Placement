@@ -315,7 +315,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
 
   # Step 5: Begin training.
   if retraining:
-    num_steps = 2001
+    num_steps = 3001
   else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
@@ -413,7 +413,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
 
 """
 
-def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False):
+def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False):
   vocabulary = read_data_nonzip(filename)	# = read_data(filename)
   vocabulary_size = 200000
 
@@ -458,8 +458,10 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
     # Input data.
     with tf.name_scope('inputs'):
-      train_inputs = tf.placeholder(tf.int32, shape=[None])
-      #train_inputs = tf.placeholder(tf.int32, shape=[None, 2])
+      if bigram_split:
+        train_inputs = tf.placeholder(tf.int32, shape=[None,2])
+      else:
+        train_inputs = tf.placeholder(tf.int32, shape=[None])
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
@@ -470,8 +472,9 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
         embeddings = tf.Variable(
             tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
         #embed = tf.nn.
-        embed = tf.nn.embedding_lookup(embeddings, train_inputs)
-        #embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
+        if bigram_split:
+            embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
+        else: embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
 
       # Construct the variables for the NCE loss
@@ -499,17 +502,6 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
               num_sampled=num_sampled,
               num_classes=vocabulary_size))
 
-      """
-      cosine_loss = tf.reduce_mean(
-            custom_cosine_loss(
-                weights=nce_weights,
-                biases=nce_biases,
-                labels=train_labels,
-                inputs=embed,
-                num_sampled=num_sampled,
-                num_classes=vocabulary_size))
-    
-       """
     # Add the loss value as a scalar to summary.
     tf.summary.scalar('loss', loss)
 
@@ -533,8 +525,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
   # Step 5: Begin training.
   if retraining:
-    #num_steps = 401
-    num_steps = 1
+    num_steps = 1000
   else: num_steps = 100001
 
   with tf.Session(graph=graph) as session:
@@ -565,48 +556,56 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
           inputs, labels = process_inputs(X, y)
           #print(inputs, labels)
           for i in range(len(inputs)):
-              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-              #label = labels[i]
-              batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
-              #print("INPUT: ", reverse_dictionary.get(batch_inputs[-1]), "\tLABEL: ", reverse_dictionary.get(batch_labels[-1]))
-              #if '_' in label:
-              #    middle = label.index('_')
-              #    w1 = label[:middle]
-              #    w2 = label[middle+1:]
-              #    batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w1)]))
-              #    #print(unused_dictionary.get(w1))
-              #    batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w2)]))
-                  #print(unused_dictionary.get(w2))
-                  #must add an extra element to batch_inputs
-              #    batch_inputs = np.append(batch_inputs, batch_inputs[-1])
-              #else:
-              #    batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(label)]))
+              if bigram_split and '_' in inputs[i]:
+                  batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+                  label = labels[i]
+                  #print("INPUT: ", reverse_dictionary.get(batch_inputs[-1]), "\tLABEL: ", reverse_dictionary.get(batch_labels[-1]))
+                  if '_' in label:
+                      w1, w2 = label.split("_")
+                      batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w1)]))
+                      #print(unused_dictionary.get(w1))
+                      batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w2)]))
+                      #print(unused_dictionary.get(w2))
+                      #must add an extra element to batch_inputs
+                      batch_inputs = np.append(batch_inputs, batch_inputs[-1])
+                  else:
+                      batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(label)]))
+              else:
+                  batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+                  batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
 
           #for elem in batch_labels:
               #print(elem)
+          #print("PRINTING SHAPES")
+          #print("===========================")
           #print(tf.shape(batch_inputs).eval())
           #print(tf.shape(batch_labels).eval())
       else:
           batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
 
-      # Deal with bigrams
-      #modded_batch_inputs = []
-      #for i in range(len(batch_inputs)):
-      #    w = reverse_dictionary[batch_inputs[i]]
-      #    if '_' in w:
-      #        w1, w2 = w.split("_")
-      #    else:
-      #        w1, w2 = w, w
-      #    try:
-      #        modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
-      #except KeyError:
-      #        modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
-      #modded_batch_inputs = np.array(modded_batch_inputs)
-        
+
       batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+
+      # Deal with bigrams
+      if bigram_split:
+          modded_batch_inputs = []
+          for i in range(len(batch_inputs)):
+              w = reverse_dictionary[batch_inputs[i]]
+              if '_' in w:
+                  w1, w2 = w.split("_")
+              else:
+                  w1, w2 = w, w
+              try:
+                  modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
+              except KeyError:
+                  modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
+          modded_batch_inputs = np.array(modded_batch_inputs)
+          feed_dict = {train_inputs: modded_batch_inputs, train_labels: batch_labels}
+      else:
+          feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+
       #batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-      #feed_dict = {train_inputs: modded_batch_inputs, train_labels: batch_labels}
-      feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+      #feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
       #print(len(modded_batch_inputs))
       #print(len(batch_labels))
       #print("BATCH LABELS: ", batch_labels)
@@ -646,6 +645,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
         new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
         #batch_labels = np.reshape(batch_labels, (len(batch_labels)))
 
+        num_steps = 10000
         for step in xrange(num_steps):
               feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
 

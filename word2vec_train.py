@@ -4,8 +4,8 @@ def train_original_model(filename):
     word2vec_turk('log', filename, retraining=False, X=None, y=None, dictionaries=None)
     return
 
-def retrain_model_and_get_embeddings(X, y, dictionaries, filename):
-    return word2vec_turk('log', filename, retraining=True, X=X, y=y, dictionaries=dictionaries) 
+def retrain_model_and_get_embeddings(X, y, dictionaries, filename, bigram_split=False):
+    return word2vec_turk('log', filename, retraining=True, X=X, y=y, dictionaries=dictionaries, bigram_split=bigram_split) 
     
 
 
