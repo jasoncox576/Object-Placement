@@ -73,7 +73,7 @@ def remove_perfect(X, y):
         
         # If NOT Perfect
         if max(answer_count) != 4 and np.sum(answer_count) == 4:
-            print("Appending #2 ", X[x1])
+            #print("Appending #2 ", X[x1])
             new_X.append(X[x1])
             new_y.append(y[x1])
 
@@ -95,10 +95,11 @@ def remove_similars(X, y):
     
     for i in range(len(X)):
         for obj in X[i]:
-            if obj in similar_objects:
+            if obj in similar_objects and i not in discarded_indices:
+                print("SIMILAR ADD", X[i])
                 test_x.append(X[i])
                 test_y.append(y[i])
-                print("Test x, y append ", X[i], y[i])
+                #print("Test x, y append ", X[i], y[i])
                 discarded_indices[i] = 1
     
     for i in range(len(X)):
@@ -160,8 +161,6 @@ def test_partition(X, y, assure_p):
     test_y = [y[i] for i in test_indices] 
        
 
-    for i in X:
-        print(i)
     
     
     return (train_x, train_y), (test_x, test_y) 
@@ -239,6 +238,9 @@ def get_train_test(filename):
   y1 = copy.deepcopy(y) 
   X_perfect, y_perfect = instances_disagree_process(X1, y1) 
   train1, test1 = test_partition(X_perfect, y_perfect, assure_p=True) 
+  train1_copy = copy.deepcopy(train1[0]), copy.deepcopy(train1[1])
+  test1_copy = copy.deepcopy(test1[0]), copy.deepcopy(test1[1])
+  
   make_train_test_csv(copy.deepcopy(train1), copy.deepcopy(test1), "1") 
   print("MADE SET #1")
 
@@ -255,6 +257,7 @@ def get_train_test(filename):
 
   test2 = remove_perfect(X1, y1) 
 
+
   make_train_test_csv(copy.deepcopy(train2), copy.deepcopy(test2), "2")
   print("MADE SET #2")
 
@@ -264,7 +267,13 @@ def get_train_test(filename):
   train3[1] = copy.deepcopy(train1[1])
 
   test3 = add_instances(copy.deepcopy(test1), copy.deepcopy(test2)) 
-  make_train_test_csv(copy.deepcopy(train3), copy.deepcopy(test3), "3")
+
+  train3_copy = copy.deepcopy(train3[0]), copy.deepcopy(train3[1])
+  test3_copy = copy.deepcopy(test3[0]), copy.deepcopy(test3[1])
+  print(len(test3_copy[0]))
+  print(len(test3_copy[1]))
+  make_train_test_csv(train3_copy, test3_copy, "3")
+  #make_train_test_csv(train3, test3, "3")
   print("MADE SET #3")
 
   #This is train/test set #4
