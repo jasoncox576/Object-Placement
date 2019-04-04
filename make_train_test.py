@@ -1,32 +1,29 @@
 import csv
-filename = "official_results.csv"
 
-def make_train_test_csv(filename):
-    seen_permutations = []
-    test_csv = open("test.csv", "w")
-    train_csv = open("train.csv", "w")
+def make_train_test_csv(train, test, filename_prefix):
+    #seen_permutations = []
+    test_filename = filename_prefix + "_test.csv"
+    train_filename = filename_prefix + "_train.csv"
+    test_csv = open(test_filename, "w")
+    train_csv = open(train_filename, "w")
     
-    with open(filename, "r+") as csvfile:
-        reader = csv.reader(csvfile)
-        test_writer = csv.writer(test_csv)
-        train_writer = csv.writer(train_csv)
+    test_writer = csv.writer(test_csv)
+    train_writer = csv.writer(train_csv)
+    
+    train_x, train_y = train
+    test_x, test_y = test 
+
+    for index in range(len(train_x)):
+        new_row_train = train_x[index]
+        new_row_train.append(train_y[index])
+        train_writer.writerow(new_row_train)
         
-        for row in reader:
-            if reader.line_num == 1: continue
-            row_result = row[27:32]
-            if row_result[:-1] not in seen_permutations:
-                seen_permutations.append(row_result[:-1])
-                test_writer.writerow(row_result)
-            else:
-                train_writer.writerow(row_result)
+    for index in range(len(test_x)):
+        new_row_test = test_x[index]
+        new_row_test.append(test_y[index]) 
+        test_writer.writerow(new_row_test)
 
     test_csv.close()
     train_csv.close()
-
-
-if __name__=="__main__":
-    make_train_test_csv(filename)
-
-
 
 

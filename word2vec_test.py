@@ -16,9 +16,15 @@ if __name__=="__main__":
     accs_pretrain = np.zeros(4)
     accs = np.zeros(4)  
 
-    X, y = get_train_test(turk_data_filename) 
-    print(len(X))
-    print(len(y))
+    #X, y = get_train_test(turk_data_filename) 
+    train, test = get_train_test(turk_data_filename)
+    print(len(train[0]), len(train[1]))
+    print(len(test[0]), len(test[1]))
+
+
+    train_x, train_y = train    
+    test_x, test_y = test
+
   
     word2vec_acc = 0
     word2vec_alt_acc = 0
@@ -26,7 +32,7 @@ if __name__=="__main__":
     #initial_bigram_embeddings, initial_bigram_weights = word2vec_basic('log/fil9_bigram', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
     initial_bigram_embeddings, initial_bigram_weights = word2vec_turk('log', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
 
-    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(X, y, initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary, "results.csv")
+    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(test_x, test_y, initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary, "results.csv")
 
     print("word2vec_acc: ", word2vec_acc)
     print("word2vec_alt_acc: ", word2vec_alt_acc)
@@ -36,8 +42,8 @@ if __name__=="__main__":
 
     #NOW we retrain the model and test it AGAIN.
 
-    embeddings, weights = retrain_model_and_get_embeddings(X, y, bigram_dictionaries, 'modified_text')
-    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(X, y, embeddings, weights, bigram_unused_dictionary, "results.csv") 
+    embeddings, weights = retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, 'modified_text')
+    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(test_x, test_y, embeddings, weights, bigram_unused_dictionary, "results.csv") 
     
     print('\n')
     print("AFTER RETRAINING:::")
@@ -48,8 +54,8 @@ if __name__=="__main__":
     #Now we retrain using bigram-split method and test.
 
     print("\nTraining Using Bigram-Split:")
-    embeddings, weights = retrain_model_and_get_embeddings(X, y, bigram_dictionaries, 'modified_text', bigram_split=True)
-    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(X, y, embeddings, weights, bigram_unused_dictionary, "results.csv")
+    embeddings, weights = retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, 'modified_text', bigram_split=True)
+    word2vec_acc, word2vec_alt_acc = evaluate_word2vec(test_x, test_y, embeddings, weights, bigram_unused_dictionary, "results.csv")
     print('\n')
     print("AFTER RETRAINING:::")
     print("word2vec_acc: ", word2vec_acc)
