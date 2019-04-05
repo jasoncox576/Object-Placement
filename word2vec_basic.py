@@ -413,7 +413,7 @@ def word2vec_basic(log_dir, filename, retraining=False, X=None, y=None, dictiona
 
 """
 
-def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False):
+def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True):
   vocabulary = read_data_nonzip(filename)	# = read_data(filename)
   vocabulary_size = 200000
 
@@ -536,7 +536,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     init.run()
     print('Initialized')
 
-    if retraining or get_embeddings:
+    if get_embeddings or load:
         saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
         print("MODEL RESTORED")
         if get_embeddings:
@@ -556,23 +556,8 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
           inputs, labels = process_inputs(X, y)
           #print(inputs, labels)
           for i in range(len(inputs)):
-              if bigram_split and '_' in inputs[i]:
-                  batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-                  label = labels[i]
-                  #print("INPUT: ", reverse_dictionary.get(batch_inputs[-1]), "\tLABEL: ", reverse_dictionary.get(batch_labels[-1]))
-                  if '_' in label:
-                      w1, w2 = label.split("_")
-                      batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w1)]))
-                      #print(unused_dictionary.get(w1))
-                      batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(w2)]))
-                      #print(unused_dictionary.get(w2))
-                      #must add an extra element to batch_inputs
-                      batch_inputs = np.append(batch_inputs, batch_inputs[-1])
-                  else:
-                      batch_labels = np.append(batch_labels, np.array([unused_dictionary.get(label)]))
-              else:
-                  batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-                  batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+              batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
 
           #for elem in batch_labels:
               #print(elem)
@@ -589,6 +574,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
       # Deal with bigrams
       if bigram_split:
           modded_batch_inputs = []
+          modded_batch_labels = []
           for i in range(len(batch_inputs)):
               w = reverse_dictionary[batch_inputs[i]]
               if '_' in w:
@@ -599,8 +585,24 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
                   modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
               except KeyError:
                   modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
+              
+              label = reverse_dictionary[batch_labels[i]]
+
+              if '_' in label:
+                  label1, label2 = label.split("_")
+                  modded_batch_labels.append(unused_dictionary[label1])
+                  modded_batch_labels.append(unused_dictionary[label2])
+
+                  modded_batch_inputs.append(modded_batch_inputs[-1])
+              else:
+                  modded_batch_labels.append(unused_dictionary[label])
+
+
           modded_batch_inputs = np.array(modded_batch_inputs)
-          feed_dict = {train_inputs: modded_batch_inputs, train_labels: batch_labels}
+          modded_batch_labels = np.array(modded_batch_labels)
+          modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
+
+          feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
       else:
           feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
@@ -713,6 +715,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     #Note: You ONLY WANT to save the model if you are training on the
     #data for the first time. If retraining for multiple test sets, don't save it.
     if not retraining: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+    if retraining and (load==False): saver.save(session, os.path.join(log_dir, 'model.ckpt'))
     #return final_embeddings, 
     return embeddings.eval(), nce_weights.eval()
 

@@ -96,7 +96,6 @@ def remove_similars(X, y):
     for i in range(len(X)):
         for obj in X[i]:
             if obj in similar_objects and i not in discarded_indices:
-                print("SIMILAR ADD", X[i])
                 test_x.append(X[i])
                 test_y.append(y[i])
                 #print("Test x, y append ", X[i], y[i])
@@ -185,6 +184,8 @@ def read_csv_train_test(filename):
 
 
 def get_train_test(filename):
+   
+  #NOTE::: ALL THIS FUNCTION DOES IS CREATE THE TRAIN/TEST CSV files.
 
   #Yes, this is a horrible way to do this. I'm over it.
   X = []
