@@ -74,8 +74,9 @@ def remove_perfect(X, y):
         # If NOT Perfect
         if max(answer_count) != 4 and np.sum(answer_count) == 4:
             #print("Appending #2 ", X[x1])
-            new_X.append(X[x1])
-            new_y.append(y[x1])
+            for index in current_indices:
+                new_X.append(X[index])
+                new_y.append(y[index])
 
     return new_X, new_y
 
@@ -237,6 +238,7 @@ def get_train_test(filename):
   #This is train/test set #1
   X1 = copy.deepcopy(X)
   y1 = copy.deepcopy(y) 
+  print("LEN X1", len(X1))
   X_perfect, y_perfect = instances_disagree_process(X1, y1) 
   train1, test1 = test_partition(X_perfect, y_perfect, assure_p=True) 
   train1_copy = copy.deepcopy(train1[0]), copy.deepcopy(train1[1])
