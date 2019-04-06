@@ -9,7 +9,7 @@ def retrain_model_and_get_embeddings(X, y, dictionaries, filename, bigram_split=
     
 
 def train_on_turk_exclusively(X, y, dictionaries, filename):
-    return word2vec_turk('log', filename, retraining=true, X=X, y=y, dictionaries=dictionaries,bigram_split=False, load=False)
+    return word2vec_turk('log', filename, retraining=True, X=X, y=y, dictionaries=dictionaries,bigram_split=False, load=False)
 
 
 if __name__=="__main__":

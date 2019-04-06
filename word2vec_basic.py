@@ -586,7 +586,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
               except KeyError:
                   modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
               
-              label = reverse_dictionary[batch_labels[i]]
+              label = reverse_dictionary[batch_labels[i][0]]
 
               if '_' in label:
                   label1, label2 = label.split("_")
