@@ -54,6 +54,8 @@ if __name__=="__main__":
         word2vec_alt_acc = 0
 
         #initial_bigram_embeddings, initial_bigram_weights = word2vec_basic('log/fil9_bigram', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
+
+        train_original_model('modified_text', load=False)
         initial_bigram_embeddings, initial_bigram_weights = word2vec_turk('log', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
 
         word2vec_acc, word2vec_alt_acc = evaluate_word2vec(test_x, test_y, initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary, "results.csv")
