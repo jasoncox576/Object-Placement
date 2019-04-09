@@ -92,19 +92,12 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
         indices = (index, None)
     return indices, embed, n_embed
 
-def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
+
+
+def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
     out_file = open(outfile_name, 'w') 
 
-    total_correct_w2v = 0
-    total_correct_output = 0
-
-    total_unigram = 0
-    total_bigram = 0
-    
-    w2v_unigram_correct = 0
-    output_unigram_correct = 0
-    w2v_bigram_correct = 0
-    output_bigram_correct = 0
+    total_correct = 0
 
     for case in range(len(X)):
         p = X[case][0]          #primary
@@ -145,12 +138,34 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, bigra
         out_file.write("%s, %s \n" % (p, z))
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
-            total_correct_w2v += 1
-            if '_' in p:
-                w2v_bigram_correct += 1
-            else:
-                w2v_unigram_correct += 1
-        
+            total_correct += 1
+
+    return total_correct/len(X)
+
+
+
+
+def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
+    out_file = open(outfile_name, 'w') 
+
+    total_correct = 0
+    
+
+    for case in range(len(X)):
+        p = X[case][0]          #primary
+        a = X[case][1]          #choice a
+        b = X[case][2]          #choice b
+        c = X[case][3]          #choice c
+        z = y[case]             #answer
+
+        p_indices, p_embedding, p_nembedding = get_word_primary(p, dictionary, matrix_priors, embeddings, bigram_split)
+        a_indices, a_embeddings, a_nembeddings = get_word(a, dictionary, matrix_priors, embeddings, bigram_split)
+        b_indices, b_embeddings, b_nembeddings = get_word(b, dictionary, matrix_priors, embeddings, bigram_split)
+        c_indices, c_embeddings, c_nembeddings = get_word(c, dictionary, matrix_priors, embeddings, bigram_split)
+        z_indices, z_embeddings, z_nembeddings = get_word(z, dictionary, matrix_priors, embeddings, bigram_split)
+         
+        indices = [a_indices, b_indices, c_indices]
+
         output_vector = np.matmul([p_embedding], np.transpose(weights))
         output_vector = np.reshape(output_vector, (len(output_vector[0])))
         
@@ -166,29 +181,16 @@ def evaluate_word2vec(X, y, embeddings, weights, dictionary, outfile_name, bigra
                 output_sim_vector.append(mean)
 
         if(np.argmax(output_sim_vector) == X[case][1:].index(y[case])):
-            total_correct_output += 1
-            if '_' in p:
-                output_bigram_correct += 1
-            else:
-                output_unigram_correct += 1
+            total_correct += 1
         else:
             if X[case][0] in X[case][1:]:
-                total_correct_output += 1
-                if '_' in p:
-                    output_bigram_correct += 1
-                else:
-                    output_unigram_correct += 1 
+                total_correct += 1
 
-        if '_' in p:
-            total_bigram += 1
-        else:
-            total_unigram += 1
         
     out_file.close();
 
 
-    return total_correct_w2v/len(X), total_correct_output/len(X)
-    #, [w2v_unigram_correct/total_unigram, w2v_bigram_correct/total_bigram, output_unigram_correct/total_unigram, output_bigram_correct/total_bigram]
+    return total_correct/len(X)
 
 
 """

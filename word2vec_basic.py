@@ -144,7 +144,7 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
-def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True):
+def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, cosine=False):
   vocabulary = read_data_nonzip(filename)	# = read_data(filename)
   vocabulary_size = 200000
 
@@ -255,9 +255,11 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
 
   # Step 5: Begin training.
-  if retraining:
-    num_steps = 1000
-  else: num_steps = 100001
+  if retraining: 
+      num_steps = 20000
+  else:
+      num_steps = 100000
+
 
   with tf.Session(graph=graph) as session:
     # Open a writer to write summaries.
@@ -276,31 +278,39 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     print("LEN EMBEDDINGS")
     print(tf.size(embeddings), tf.size(embeddings[0]))
     average_loss = 0
+    #batch_inputs = np.zeros([batch_size])
+    batch_inputs = np.array([], dtype=int)
+    #batch_labels = np.zeros([batch_size, 1])
+    batch_labels = np.array([], dtype=int)
 
-    for step in xrange(num_steps):
-      #batch_inputs = np.zeros([batch_size])
-      batch_inputs = np.array([], dtype=int)
-      #batch_labels = np.zeros([batch_size, 1])
-      batch_labels = np.array([], dtype=int)
-
-      if retraining:
-          inputs, labels = process_inputs(X, y)
-          #print(inputs, labels)
-          for i in range(len(inputs)):
-              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-              batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
-
-          #for elem in batch_labels:
-              #print(elem)
-          #print("PRINTING SHAPES")
-          #print("===========================")
-          #print(tf.shape(batch_inputs).eval())
-          #print(tf.shape(batch_labels).eval())
-      else:
-          batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-
+    if retraining:
+      inputs, labels = process_inputs(X, y)
+      for i in range(len(inputs)):
+          batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+          batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
 
       batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+
+      if cosine:
+          if bigram_split:
+              itemplaceholder = tf.placeholder(tf.int32, [None,2])
+              nexttoplaceholder = tf.placeholder(tf.int32, [None])
+              #x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+              x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
+              y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+          else:
+              itemplaceholder = tf.placeholder(tf.int32, [None])
+              nexttoplaceholder = tf.placeholder(tf.int32, [None])
+              x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+              y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+        
+
+          new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+          new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
+
+    for step in xrange(num_steps):
+      if not retraining:
+          batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
 
       # Deal with bigrams
       if bigram_split:
@@ -321,132 +331,69 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
 
               if '_' in label:
                   label1, label2 = label.split("_")
-                  modded_batch_labels.append(unused_dictionary[label1])
-                  modded_batch_labels.append(unused_dictionary[label2])
 
+                  try:
+                      modded_batch_labels.append(unused_dictionary[label1])
+                  except KeyError:
+                      modded_batch_labels.append(unused_dictionary[label])
+                      continue
+                  try:
+                      modded_batch_labels.append(unused_dictionary[label2])
+                  except KeyError:
+                      del modded_batch_labels[-1]
+                      modded_batch_labels.append(unused_dictionary[label])
+                      continue
                   modded_batch_inputs.append(modded_batch_inputs[-1])
+
               else:
                   modded_batch_labels.append(unused_dictionary[label])
+                 
 
 
           modded_batch_inputs = np.array(modded_batch_inputs)
           modded_batch_labels = np.array(modded_batch_labels)
           modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
-
           feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
+          if cosine:
+              feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : np.squeeze(modded_batch_labels)}
+              #feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : modded_batch_labels}
+          else:
+              feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
       else:
-          feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+          if cosine:
+              feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
+              #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
+            
+          else:
+              feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
-      #batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-      #feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
-      #print(len(modded_batch_inputs))
-      #print(len(batch_labels))
-      #print("BATCH LABELS: ", batch_labels)
-
-      # Define metadata variable.
-      run_metadata = tf.RunMetadata()
-
-      _, summary, loss_val = session.run([optimizer, merged, loss],
-                                         feed_dict=feed_dict,
-                                         run_metadata=run_metadata)
+      if cosine:
+              _, loss_val = session.run([new_optimizer, new_loss],
+                                                     feed_dict=feed_dict)
+      else:
+              run_metadata = tf.RunMetadata()
+              _, summary, loss_val = session.run([optimizer, merged, loss],
+                                                     feed_dict=feed_dict,
+                                                     run_metadata=run_metadata)
       average_loss += loss_val
 
-      # Add returned summaries to writer in each step.
-      writer.add_summary(summary, step)
-      # Add metadata to visualize the graph for the last run.
-      if step == (num_steps - 1):
-        writer.add_run_metadata(run_metadata, 'step%d' % step)
-
       if step % 100 == 0:
-        if step > 0:
-          average_loss /= 100
-        # The average loss is an estimate of the loss over the last 2000
-        # batches.
-        print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-        average_loss = 0
-
-    if retraining:
-
-        itemplaceholder = tf.placeholder(tf.int32, [None])
-        nexttoplaceholder = tf.placeholder(tf.int32, [None])
-
-        x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-        y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
-
-        new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-
-        new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
-        #batch_labels = np.reshape(batch_labels, (len(batch_labels)))
-
-        num_steps = 10000
-        for step in xrange(num_steps):
-              feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
-
-              _, loss_val = session.run([new_optimizer, new_loss],
-                                         feed_dict=feed_dict)
-              average_loss += loss_val
-
-              if step % 100 == 0:
-                if step > 0:
-                  average_loss /= 100
-                # The average loss is an estimate of the loss over the last 2000
-                # batches.
-                print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-                average_loss = 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+          if step > 0:
+              average_loss /= 100
+          print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+          average_loss = 0
 
 
     # Write corresponding labels for the embeddings.
     with open(log_dir + '/metadata.tsv', 'w') as f:
-      for i in xrange(vocabulary_size):
-        f.write(reverse_dictionary[i] + '\n')
+        for i in xrange(vocabulary_size):
+            f.write(reverse_dictionary[i] + '\n')
 
-    # Save the model for checkpoints.
-    
-    #Note: You ONLY WANT to save the model if you are training on the
-    #data for the first time. If retraining for multiple test sets, don't save it.
+      # Save the model for checkpoints.
+            
+      #Note: You ONLY WANT to save the model if you are training on the
+      #data for the first time. If retraining for multiple test sets, don't save it.
     if not retraining: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
     if retraining and (load==False): saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-    #return final_embeddings, 
     return embeddings.eval(), nce_weights.eval()
 
