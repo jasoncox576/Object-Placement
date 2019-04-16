@@ -6,9 +6,10 @@ To generate all of the train and test files:
 
 The resulting `csv` files in the directory will be labeled `n_train.csv` or `n_test.csv` depending on the set that it belongs to.
 
-Here's how each set is generated:
+Here's how each set is generated:  
+
 1:
-Train: Only 4/4 agree cases, 75% of original data randomly sampled. All four of those cases are merged into one.
+Train: Only 4/4 agree cases, 75% of original data randomly sampled. All four of those cases are merged into one.  
 Test: Only 4/4 agree cases, the other 25% of the data. All four of those cases are merged into one.
 
 2:  
