@@ -11,20 +11,20 @@ Here's how each set is generated:
 Train: Only 4/4 agree cases, 75% of original data randomly sampled. All four of those cases are merged into one.
 Test: Only 4/4 agree cases, the other 25% of the data. All four of those cases are merged into one.
 
-2:
-Train: Same as before
+2:  
+Train: Same as before  
 Test: Remove all 4/4 cases from original big dataset.
 
-3:
-Train: Same as before
+3:  
+Train: Same as before  
 Test: Take the cases of the test set of 1 (all 4/4) and add four of those to the test set of 2.
 
-4:
-Train: Remove all instances that have a 'similar' item anywhere in them.
+4:  
+Train: Remove all instances that have a 'similar' item anywhere in them.  
 Test: Put all of those instances that had a 'similar' item in the test set.
 
-5:
-Train: 75% of everything, randomly sampled
+5:  
+Train: 75% of everything, randomly sampled  
 Test: 25% of everything, randomly sampled
 
 
