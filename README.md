@@ -8,6 +8,6 @@ To generate all of the train and test files:
 
 Then, you can use
 `python3 word2vec_test.py` 
-to evaluate all six models on all five train/test sets, for both cosine and output vector metrics.
+to train and evaluate all six models on all five train/test sets, for both cosine and output vector metrics.
 The results can be found in `accs_final.csv`. The cosine similarity accuracy comes first, then the output vector one.
 One line is printed for each of the models. After each set of six models, the results for the next dataset are printed.
