@@ -32,7 +32,7 @@ Test: 25% of everything, randomly sampled
 
 Then, you can use
 `python3 word2vec_train.py`  
-to generate all of the models, which will be saved to directories.
+to generate all of the models, which will be saved to separate directories.
 `python3 word2vec_test.py` 
 to load and evaluate all seven models on all five train/test sets, for both cosine and output vector metrics.
 The results can be found in `accs_final.csv`. The cosine similarity accuracy comes first, then the output vector one.
