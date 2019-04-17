@@ -392,13 +392,13 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
         #a = 1/128 
         #b = 1/5
         inputs, labels = process_inputs(X, y)
+        turk_batch_inputs = np.array([], dtype=int)
+        turk_batch_labels = np.array([], dtype=int)
+        for i in range(len(inputs)):
+            turk_batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+            turk_batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
         for step in xrange(num_steps):
             sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-            turk_batch_inputs = np.array([], dtype=int)
-            turk_batch_labels = np.array([], dtype=int)
-            for i in range(len(inputs)):
-                turk_batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-                turk_batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
 
             
 
