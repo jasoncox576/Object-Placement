@@ -45,12 +45,13 @@ if __name__=="__main__":
 
                 train_x, train_y = train_sets[set_num]
                 test_x, test_y = test_sets[set_num]
+                
+                """
 
                 # THIS IS FOR TEST #1
                 # Model trained exclusively on wikipedia
 
                 #initial_bigram_embeddings, initial_bigram_weights = word2vec_basic('log/fil9_bigram', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
-
                 train_original_model('modified_text', load=False)
                 initial_bigram_embeddings, initial_bigram_weights = word2vec_turk('log', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
 
@@ -138,7 +139,20 @@ if __name__=="__main__":
                 print("TEST #6:::")
                 print("WordNet acc: ", wordnet_acc)
                 results_writer.writerow([wordnet_acc])
+                """
                 
+
+
+                joint_embeddings, joint_weights = train_joint_loss(train_x, train_y, bigram_dictionaries, 'modified_text')
+                cosine_acc = evaluate_word2vec_cosine(test_x, test_y, joint_embeddings, joint_weights, bigram_unused_dictionary, "results.csv")
+                output_acc = evaluate_word2vec_output(test_x, test_y, joint_embeddings, joint_weights, bigram_unused_dictionary, "results.csv")
+                
+                print("TEST #7:::")
+                print("cosine acc: ", cosine_acc)
+                print("output acc: ", output_acc)
+                results_writer.writerow([cosine_acc, output_acc])
+
+
 
                 print("=================================================================")
     

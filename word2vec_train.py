@@ -17,6 +17,10 @@ def train_on_turk_exclusively(X, y, dictionaries, filename, cosine):
     return word2vec_turk('log', filename=filename, retraining=True, X=X, y=y, dictionaries=dictionaries,bigram_split=False, load=False, cosine=cosine)
 
 
+def train_joint_loss(X, y, dictionaries, filename):
+    return word2vec_turk('log', filename=filename, X=X, y=y, dictionaries=dictionaries, bigram_split=False, load=False, cosine=False, joint_training=True)
+
+
 if __name__=="__main__":
   #filename = '/home/justin/Data/modified_text'
   #filename = 'text8'

@@ -144,7 +144,7 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
-def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, cosine=False):
+def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, cosine=False, joint_training=False):
   vocabulary = read_data_nonzip(filename)	# = read_data(filename)
   vocabulary_size = 200000
 
@@ -196,7 +196,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-    with tf.device('/gpu:0'):
+    with tf.device('/cpu:0'):
 
       # Look up embeddings for inputs.
       with tf.name_scope('embeddings'):
@@ -282,106 +282,152 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     batch_inputs = np.array([], dtype=int)
     #batch_labels = np.zeros([batch_size, 1])
     batch_labels = np.array([], dtype=int)
-
-    if retraining:
-      inputs, labels = process_inputs(X, y)
-      for i in range(len(inputs)):
-          batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-          batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
-
-      batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
-
-      if cosine:
-          if bigram_split:
-              itemplaceholder = tf.placeholder(tf.int32, [None,2])
-              nexttoplaceholder = tf.placeholder(tf.int32, [None])
-              #x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-              x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-              y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
-          else:
-              itemplaceholder = tf.placeholder(tf.int32, [None])
-              nexttoplaceholder = tf.placeholder(tf.int32, [None])
-              x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-              y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+    
+    if not joint_training:
         
+        if retraining:
+          inputs, labels = process_inputs(X, y)
+          for i in range(len(inputs)):
+              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+              batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
 
-          new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-          new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
+          batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
 
-    for step in xrange(num_steps):
-      if not retraining:
-          batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-
-      # Deal with bigrams
-      if bigram_split:
-          modded_batch_inputs = []
-          modded_batch_labels = []
-          for i in range(len(batch_inputs)):
-              w = reverse_dictionary[batch_inputs[i]]
-              if '_' in w:
-                  w1, w2 = w.split("_")
-              else:
-                  w1, w2 = w, w
-              try:
-                  modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
-              except KeyError:
-                  modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
-              
-              label = reverse_dictionary[batch_labels[i][0]]
-
-              if '_' in label:
-                  label1, label2 = label.split("_")
-
-                  try:
-                      modded_batch_labels.append(unused_dictionary[label1])
-                  except KeyError:
-                      modded_batch_labels.append(unused_dictionary[label])
-                      continue
-                  try:
-                      modded_batch_labels.append(unused_dictionary[label2])
-                  except KeyError:
-                      del modded_batch_labels[-1]
-                      modded_batch_labels.append(unused_dictionary[label])
-                      continue
-                  modded_batch_inputs.append(modded_batch_inputs[-1])
-
-              else:
-                  modded_batch_labels.append(unused_dictionary[label])
-                 
-
-
-          modded_batch_inputs = np.array(modded_batch_inputs)
-          modded_batch_labels = np.array(modded_batch_labels)
-          modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
-          feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
           if cosine:
-              feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : np.squeeze(modded_batch_labels)}
-              #feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : modded_batch_labels}
-          else:
-              feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
-      else:
-          if cosine:
-              feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
-              #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
+              if bigram_split:
+                  itemplaceholder = tf.placeholder(tf.int32, [None,2])
+                  nexttoplaceholder = tf.placeholder(tf.int32, [None])
+                  #x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+                  x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
+                  y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+              else:
+                  itemplaceholder = tf.placeholder(tf.int32, [None])
+                  nexttoplaceholder = tf.placeholder(tf.int32, [None])
+                  x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+                  y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
             
+
+              new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+              new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
+
+        for step in xrange(num_steps):
+          if not retraining:
+              batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+
+          # Deal with bigrams
+          if bigram_split:
+              modded_batch_inputs = []
+              modded_batch_labels = []
+              for i in range(len(batch_inputs)):
+                  w = reverse_dictionary[batch_inputs[i]]
+                  if '_' in w:
+                      w1, w2 = w.split("_")
+                  else:
+                      w1, w2 = w, w
+                  try:
+                      modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
+                  except KeyError:
+                      modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
+                  
+                  label = reverse_dictionary[batch_labels[i][0]]
+
+                  if '_' in label:
+                      label1, label2 = label.split("_")
+
+                      try:
+                          modded_batch_labels.append(unused_dictionary[label1])
+                      except KeyError:
+                          modded_batch_labels.append(unused_dictionary[label])
+                          continue
+                      try:
+                          modded_batch_labels.append(unused_dictionary[label2])
+                      except KeyError:
+                          del modded_batch_labels[-1]
+                          modded_batch_labels.append(unused_dictionary[label])
+                          continue
+                      modded_batch_inputs.append(modded_batch_inputs[-1])
+
+                  else:
+                      modded_batch_labels.append(unused_dictionary[label])
+                     
+
+
+              modded_batch_inputs = np.array(modded_batch_inputs)
+              modded_batch_labels = np.array(modded_batch_labels)
+              modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
+              feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
+              if cosine:
+                  feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : np.squeeze(modded_batch_labels)}
+                  #feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : modded_batch_labels}
+              else:
+                  feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
           else:
-              feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+              if cosine:
+                  feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
+                  #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
+                
+              else:
+                  feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
-      if cosine:
-              _, loss_val = session.run([new_optimizer, new_loss],
-                                                     feed_dict=feed_dict)
-      else:
-              run_metadata = tf.RunMetadata()
-              _, summary, loss_val = session.run([optimizer, merged, loss],
-                                                     feed_dict=feed_dict,
-                                                     run_metadata=run_metadata)
-      average_loss += loss_val
+          if cosine:
+                  _, loss_val = session.run([new_optimizer, new_loss],
+                                                         feed_dict=feed_dict)
+          else:
+                  run_metadata = tf.RunMetadata()
+                  _, summary, loss_val = session.run([optimizer, merged, loss],
+                                                         feed_dict=feed_dict,
+                                                         run_metadata=run_metadata)
+          average_loss += loss_val
 
-      if step % 100 == 0:
-          if step > 0:
-              average_loss /= 100
-          print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-          average_loss = 0
+          if step % 100 == 0:
+              if step > 0:
+                  average_loss /= 100
+              print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+              average_loss = 0
+
+    if joint_training:
+        # I know hardcoding the hyperparameters like this is not ideal, it's just easier than having a twentieth parameter to this word2vec_turk function
+        a = 0.5
+        b = 0.5
+        #a = 1/128 
+        #b = 1/5
+        inputs, labels = process_inputs(X, y)
+        for step in xrange(num_steps):
+            sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+            turk_batch_inputs = np.array([], dtype=int)
+            turk_batch_labels = np.array([], dtype=int)
+            for i in range(len(inputs)):
+                turk_batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+                turk_batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+
+            
+
+            turk_batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+
+
+            itemplaceholder = tf.placeholder(tf.int32, [None])
+            nexttoplaceholder = tf.placeholder(tf.int32, [None])
+            x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+            y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+
+            cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+
+
+            #joint_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            joint_loss = tf.add(tf.math.multiply(loss, a), tf.math.multiply(cosine_loss, b)) 
+            joint_optimizer = tf.train.GradientDescentOptimizer(1).minimize(joint_loss)
+
+            
+            feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
+            _, loss_val = session.run([joint_optimizer, joint_loss],
+                                                   feed_dict=feed_dict)
+            average_loss += loss_val
+            if step % 100 == 0:
+                if step > 0:
+                    average_loss /= 100
+                print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+                average_loss = 0
+
 
 
     # Write corresponding labels for the embeddings.
