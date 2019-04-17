@@ -389,35 +389,27 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         # I know hardcoding the hyperparameters like this is not ideal, it's just easier than having a twentieth parameter to this word2vec_turk function
         a = 0.5
         b = 0.5
-        #a = 1/128 
-        #b = 1/5
+        #a = 1/5 
+        #b = 1/128
         inputs, labels = process_inputs(X, y)
         turk_batch_inputs = np.array([], dtype=int)
         turk_batch_labels = np.array([], dtype=int)
         for i in range(len(inputs)):
             turk_batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
             turk_batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+
+        turk_batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+        itemplaceholder = tf.placeholder(tf.int32, [None])
+        nexttoplaceholder = tf.placeholder(tf.int32, [None])
+        x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+        y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+
+        cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+        joint_loss = tf.add(tf.math.multiply(loss, a), tf.math.multiply(cosine_loss, b)) 
+        joint_optimizer = tf.train.GradientDescentOptimizer(1).minimize(joint_loss)
+
         for step in xrange(num_steps):
             sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-
-            
-
-            turk_batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
-
-
-            itemplaceholder = tf.placeholder(tf.int32, [None])
-            nexttoplaceholder = tf.placeholder(tf.int32, [None])
-            x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-            y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
-
-            cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-
-
-            #joint_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-            joint_loss = tf.add(tf.math.multiply(loss, a), tf.math.multiply(cosine_loss, b)) 
-            joint_optimizer = tf.train.GradientDescentOptimizer(1).minimize(joint_loss)
-
-            
             feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
             _, loss_val = session.run([joint_optimizer, joint_loss],
                                                    feed_dict=feed_dict)
