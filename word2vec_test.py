@@ -18,20 +18,20 @@ if __name__=="__main__":
             results_writer = csv.writer(accuracies_file)
 
             #X, y = get_train_test(turk_data_filename) 
-            train1 = read_csv_train_test("1_train.csv")
-            test1 = read_csv_train_test("1_test.csv")
+            train1 = read_csv_train_test("data/1_train.csv")
+            test1 = read_csv_train_test("data/1_test.csv")
             
-            train2 = read_csv_train_test("2_train.csv")
-            test2 = read_csv_train_test("2_test.csv")
+            train2 = read_csv_train_test("data/2_train.csv")
+            test2 = read_csv_train_test("data/2_test.csv")
 
-            train3 = read_csv_train_test("3_train.csv")
-            test3 = read_csv_train_test("3_test.csv")
+            train3 = read_csv_train_test("data/3_train.csv")
+            test3 = read_csv_train_test("data/3_test.csv")
 
-            train4 = read_csv_train_test("4_train.csv")
-            test4 = read_csv_train_test("4_test.csv")
+            train4 = read_csv_train_test("data/4_train.csv")
+            test4 = read_csv_train_test("data/4_test.csv")
 
-            train5 = read_csv_train_test("5_train.csv")
-            test5 = read_csv_train_test("5_test.csv")
+            train5 = read_csv_train_test("data/5_train.csv")
+            test5 = read_csv_train_test("data/5_test.csv")
 
 
             train_sets = [train1, train2, train3, train4, train5]
