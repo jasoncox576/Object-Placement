@@ -144,8 +144,8 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
-def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, cosine=False, joint_training=False):
-  vocabulary = read_data_nonzip(filename)	# = read_data(filename)
+def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False):
+  vocabulary = read_data_nonzip(filename)
   vocabulary_size = 200000
 
 
@@ -270,7 +270,7 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
     print('Initialized')
 
     if get_embeddings or load:
-        saver.restore(session, os.path.join(log_dir, 'model.ckpt')) 
+        saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
         print("MODEL RESTORED")
         if get_embeddings:
             return embeddings.eval(), nce_weights.eval()
@@ -439,7 +439,6 @@ def word2vec_turk(log_dir, filename, retraining=False, X=None, y=None, dictionar
             
       #Note: You ONLY WANT to save the model if you are training on the
       #data for the first time. If retraining for multiple test sets, don't save it.
-    if not retraining: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-    if retraining and (load==False): saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
     return embeddings.eval(), nce_weights.eval()
 
