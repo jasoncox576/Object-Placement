@@ -1,4 +1,5 @@
 # Object-Placement
+First, you must use `fix_file.py` to generate the corpus with bigrams.
 
 To generate all of the train and test files:
 
