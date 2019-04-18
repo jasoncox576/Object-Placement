@@ -7,6 +7,58 @@ import copy
 import sys
 
 
+def get_agreements(X, y):
+    used_indices = {}
+
+    X = X.tolist()
+    y = y.tolist()
+
+    four_count = 0
+    three_count = 0
+    two_count = 0
+    one_count = 0
+
+
+    fours = []
+    threes = []
+    twos = []
+    ones = []
+
+    for x1 in range(len(X)):
+        if used_indices.get(x1): continue
+        answer_count = [0,0,0]
+        answer_count[X[x1][1:].index(y[x1])] += 1
+        current_indices = [x1]
+
+        for x2 in range(len(X)):
+            if (used_indices.get(x2)) or (x1 == x2): continue
+            if(X[x1] == X[x2]):
+                answer_count[X[x2][1:].index(y[x2])] += 1
+                used_indices[x2] = 1
+                current_indices.append(x2)
+        used_indices[x1] = 1
+        if max(answer_count) == 4:
+            four_count += 1
+            if len(fours) < 10:
+                fours.append((X[x1], answer_count))
+        if max(answer_count) == 3:
+            three_count += 1
+            if len(threes) < 10:
+                threes.append((X[x1], answer_count))
+        if max(answer_count) == 2:
+            two_count += 1
+            if len(twos) < 10:
+                twos.append((X[x1], answer_count))
+        if max(answer_count) == 1:
+            one_count += 1
+            if len(ones) < 10:
+                ones.append((X[x1], answer_count))
+    
+    return four_count, three_count, two_count, one_count, fours, threes, twos, ones 
+
+
+
+
 def instances_disagree_process(X, y):
     
     """
@@ -298,8 +350,34 @@ def get_train_test(filename):
 
 
 if __name__=='__main__':
-    get_train_test("final_cleaned_results.csv") 
+    #get_train_test("final_cleaned_results.csv") 
+    X1, y1 = read_csv_train_test("data/5_train.csv") 
+    X2, y2 = read_csv_train_test("data/5_test.csv")
 
+    X = np.concatenate([X1, X2])
+    y = np.concatenate([y1, y2])
+
+    
+    four_count, three_count, two_count, one_count, fours, threes, twos, ones = get_agreements(X, y) 
+    total = four_count+three_count+two_count+one_count
+    print("FOUR COUNT", four_count)
+    print("THREE COUNT", three_count)
+    print("TWO COUNT", two_count)
+    print("ONE COUNT", one_count)
+    print("TOTAL:", total) 
+
+    for elem in fours:
+        print(elem)
+    print("==============================")
+    for elem in threes:
+        print(elem)
+    print("==============================")
+    for elem in twos:
+        print(elem)
+    print("==============================")
+    for elem in ones:
+        print(elem)
+    print("==============================")
 
 
 
