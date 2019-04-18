@@ -22,7 +22,7 @@ def train_joint_loss(X, y, dictionaries, filename, save_dir):
     return word2vec_turk(save_dir, load_dir=save_dir, filename=filename, X=X, y=y, dictionaries=dictionaries, bigram_split=False, load=False, cosine=False, joint_training=True)
 
 def get_embeddings(load_dir, filename, dictionaries):
-    return word2vec_turk(load_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaires=dictionaires, get_embeddings=True)
+    return word2vec_turk(load_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=dictionaries, get_embeddings=True)
 
 
 if __name__=="__main__":
