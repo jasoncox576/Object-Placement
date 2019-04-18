@@ -45,10 +45,12 @@ if __name__=="__main__":
 
   wiki_dir = "wiki"
   bigram_dir = "bigram_wiki"
+  """
   print("TRAINING ON WIKIPEDIA")
   train_original_model(filename, load_dir=None, save_dir=wiki_dir)
   print("TRAINING BIGRAM-SPLIT ON WIKIPEDIA")
   train_original_bigram_split(filename, save_dir=bigram_dir)
+  """
   
 
 
@@ -60,8 +62,8 @@ if __name__=="__main__":
 
       #MODEL #2: Retrain on cosine. 
       print("TRAINING WIKIPEDIA->TURK")
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, cosine=True, load_dir=wiki_dir, save_dir= str(set_num+1)+"_wiki+turk_cosine") 
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, cosine=False, load_dir=wiki_dir, save_dir=str(set_num+1)+"_wiki+turk_output") 
+      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, turk_filename, cosine=True, load_dir=wiki_dir, save_dir= str(set_num+1)+"_wiki+turk_cosine") 
+      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, turk_filename, cosine=False, load_dir=wiki_dir, save_dir=str(set_num+1)+"_wiki+turk_output") 
 
       print("TRAINING TURK EXCLUSIVE")
       #MODEL #3: Just train on turk.
