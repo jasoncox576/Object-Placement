@@ -111,6 +111,54 @@ def bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary):
     return (embed1 + embed2) / 2
 
 
+def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary):
+    modded_batch_inputs = []
+    modded_batch_labels = []
+    for i in range(len(batch_inputs)):
+        w = reverse_dictionary[batch_inputs[i]]
+        if '_' in w:
+            w1, w2 = w.split("_")
+        else:
+            w1, w2 = w, w
+        try:
+            modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
+        except KeyError:
+            modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
+      
+        label = reverse_dictionary[batch_labels[i][0]]
+
+        if '_' in label:
+            label1, label2 = label.split("_")
+
+            try:
+                modded_batch_labels.append(unused_dictionary[label1])
+            except KeyError:
+                modded_batch_labels.append(unused_dictionary[label])
+                continue
+            try:
+                modded_batch_labels.append(unused_dictionary[label2])
+            except KeyError:
+                del modded_batch_labels[-1]
+                modded_batch_labels.append(unused_dictionary[label])
+                continue
+            modded_batch_inputs.append(modded_batch_inputs[-1])
+
+        else:
+            modded_batch_labels.append(unused_dictionary[label])
+         
+
+
+    modded_batch_inputs = np.array(modded_batch_inputs)
+    modded_batch_labels = np.array(modded_batch_labels)
+    modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
+
+    return modded_batch_inputs, modded_batch_labels
+    
+    
+
+
+
+
 
 # Step 3: Function to generate a training batch for the skip-gram model.
 def generate_batch(batch_size, num_skips, skip_window, data):
@@ -196,7 +244,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-    with tf.device('/cpu:0'):
+    with tf.device('/gpu:0'):
 
       # Look up embeddings for inputs.
       with tf.name_scope('embeddings'):
@@ -297,7 +345,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               if bigram_split:
                   itemplaceholder = tf.placeholder(tf.int32, [None,2])
                   nexttoplaceholder = tf.placeholder(tf.int32, [None])
-                  #x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
                   x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
                   y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
               else:
@@ -316,45 +363,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
           # Deal with bigrams
           if bigram_split:
-              modded_batch_inputs = []
-              modded_batch_labels = []
-              for i in range(len(batch_inputs)):
-                  w = reverse_dictionary[batch_inputs[i]]
-                  if '_' in w:
-                      w1, w2 = w.split("_")
-                  else:
-                      w1, w2 = w, w
-                  try:
-                      modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
-                  except KeyError:
-                      modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
-                  
-                  label = reverse_dictionary[batch_labels[i][0]]
-
-                  if '_' in label:
-                      label1, label2 = label.split("_")
-
-                      try:
-                          modded_batch_labels.append(unused_dictionary[label1])
-                      except KeyError:
-                          modded_batch_labels.append(unused_dictionary[label])
-                          continue
-                      try:
-                          modded_batch_labels.append(unused_dictionary[label2])
-                      except KeyError:
-                          del modded_batch_labels[-1]
-                          modded_batch_labels.append(unused_dictionary[label])
-                          continue
-                      modded_batch_inputs.append(modded_batch_inputs[-1])
-
-                  else:
-                      modded_batch_labels.append(unused_dictionary[label])
-                     
-
-
-              modded_batch_inputs = np.array(modded_batch_inputs)
-              modded_batch_labels = np.array(modded_batch_labels)
-              modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
+              modded_batch_inputs, modded_batch_labels = split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary)
               feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
               if cosine:
                   feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : np.squeeze(modded_batch_labels)}
@@ -395,22 +404,39 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         turk_batch_inputs = np.array([], dtype=int)
         turk_batch_labels = np.array([], dtype=int)
         for i in range(len(inputs)):
-            turk_batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-            turk_batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+            turk_batch_inputs = np.append(turk_batch_inputs, unused_dictionary.get(inputs[i]))
+            turk_batch_labels = np.append(turk_batch_labels, unused_dictionary.get(labels[i]))
 
-        turk_batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
-        itemplaceholder = tf.placeholder(tf.int32, [None])
-        nexttoplaceholder = tf.placeholder(tf.int32, [None])
-        x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-        y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+        turk_batch_labels = np.reshape(turk_batch_labels, (len(turk_batch_labels), 1))
+
+        if bigram_split:
+            itemplaceholder = tf.placeholder(tf.int32, [None,2])
+            nexttoplaceholder = tf.placeholder(tf.int32, [None])
+            x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
+            y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+
+        else:
+            itemplaceholder = tf.placeholder(tf.int32, [None])
+            nexttoplaceholder = tf.placeholder(tf.int32, [None])
+            x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
+            y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
 
         cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
         joint_loss = tf.add(tf.math.multiply(loss, a), tf.math.multiply(cosine_loss, b)) 
         joint_optimizer = tf.train.GradientDescentOptimizer(1).minimize(joint_loss)
 
+        if bigram_split:
+            modded_turk_inputs, modded_turk_labels = split_bigrams(turk_batch_inputs, turk_batch_labels, unused_dictionary, reverse_dictionary)
+
+
+
+
         for step in xrange(num_steps):
             sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-            feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
+            if bigram_split:
+                modded_sg_inputs, modded_sg_labels = split_bigrams(sg_batch_inputs, sg_batch_labels, unused_dictionary, reverse_dictionary) 
+                feed_dict = {train_inputs: modded_sg_inputs, train_labels: modded_sg_labels, itemplaceholder: modded_turk_inputs, nexttoplaceholder: np.squeeze(modded_turk_labels)} 
+            else: feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
             _, loss_val = session.run([joint_optimizer, joint_loss],
                                                    feed_dict=feed_dict)
             average_loss += loss_val
@@ -419,6 +445,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss /= 100
                 print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
                 average_loss = 0
+        
 
 
 

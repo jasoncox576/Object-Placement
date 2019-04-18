@@ -18,8 +18,8 @@ def train_on_turk_exclusively(X, y, dictionaries, filename, cosine,save_dir):
     return word2vec_turk(save_dir, load_dir=save_dir, filename=filename, retraining=True, X=X, y=y, dictionaries=dictionaries,bigram_split=False, load=False, cosine=cosine)
 
 
-def train_joint_loss(X, y, dictionaries, filename, save_dir):
-    return word2vec_turk(save_dir, load_dir=save_dir, filename=filename, X=X, y=y, dictionaries=dictionaries, bigram_split=False, load=False, cosine=False, joint_training=True)
+def train_joint_loss(X, y, dictionaries, filename, bigram_split, save_dir):
+    return word2vec_turk(save_dir, load_dir=save_dir, filename=filename, X=X, y=y, dictionaries=dictionaries, bigram_split=bigram_split, load=False, cosine=False, joint_training=True)
 
 def get_embeddings(load_dir, filename, dictionaries):
     return word2vec_turk(load_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=dictionaries, get_embeddings=True)
@@ -76,11 +76,15 @@ if __name__=="__main__":
       print("TRAINING USING BIGRAM SPLIT")
       #MODEL #5: Bigram
       retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, cosine=True, load_dir=bigram_dir, save_dir=str(set_num+1)+"_bigram_cosine")
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, cosine=False, load_dir=bigram_dir, save_dir=str(set_num+1)+"_bigram_cosine")
+      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, cosine=False, load_dir=bigram_dir, save_dir=str(set_num+1)+"_bigram_output")
       
       print("TRAINING JOINT LOSS")
       #MODEL #7:  Joint loss
-      train_joint_loss(train_x, train_y, bigram_dictionaries, filename, save_dir=str(set_num+1)+"_joint") 
+      train_joint_loss(train_x, train_y, bigram_dictionaries, filename, bigram_split=False, save_dir=str(set_num+1)+"_joint") 
+      
+      print("TRAINING JOINT LOSS (BIGRAM_SPLIT)")
+      #MODEL #8: Joint loss (bigram split)
+      train_joint_loss(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, save_dir=str(set_num+1)+"_joint_bigram") 
 
 
 
