@@ -2,7 +2,7 @@ from word2vec_basic import *
 from object_placement_turk import *
 
 def train_original_model(filename, save_dir, load_dir, load=False):
-    word2vec_turk(save_dir, load_dir=save_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=False, load=load)
+    word2vec_turk(save_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=False, load=load)
     return
 
 def train_original_bigram_split(filename, save_dir, load=False):
@@ -26,7 +26,7 @@ def get_embeddings(load_dir, filename, dictionaries):
 
 
 if __name__=="__main__":
-  filename = '/home/justin/Data/fil9_bigram'
+  filename = 'fil9_bigram'
   #filename = 'text8'
   #filename = 'modified_text'
   turk_filename = "final_cleaned_results.csv"
