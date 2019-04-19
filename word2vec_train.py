@@ -26,9 +26,9 @@ def get_embeddings(load_dir, filename, dictionaries):
 
 
 if __name__=="__main__":
-  #filename = '/home/justin/Data/modified_text'
+  filename = '/home/justin/Data/fil9_bigram'
   #filename = 'text8'
-  filename = 'modified_text'
+  #filename = 'modified_text'
   turk_filename = "final_cleaned_results.csv"
   
   train1 = read_csv_train_test("data/1_train.csv")
