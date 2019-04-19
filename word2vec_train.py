@@ -71,8 +71,8 @@ if __name__=="__main__":
 
       print("TRAINING TURK->WIKIPEDIA")
       #MODEL #4: Trained on turk, now train on wiki.
-      train_original_model(filename, save_dir=str(set_num+1)+"_turk+wiki_cosine", load_dir=str(set_num+1)+"_turk_cosine")
-      train_original_model(filename, save_dir=str(set_num+1)+"_turk+wiki_output", load_dir=str(set_num+1)+"_turk_output")
+      train_original_model(filename, save_dir=str(set_num+1)+"_turk+wiki_cosine", load_dir=str(set_num+1)+"_turk_cosine", load=True)
+      train_original_model(filename, save_dir=str(set_num+1)+"_turk+wiki_output", load_dir=str(set_num+1)+"_turk_output", load=True)
 
       print("TRAINING USING BIGRAM SPLIT")
       #MODEL #5: Bigram
