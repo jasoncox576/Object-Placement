@@ -34,10 +34,8 @@ if __name__=="__main__":
   train1 = read_csv_train_test("data/1_train.csv")
   train2 = read_csv_train_test("data/2_train.csv")
   train3 = read_csv_train_test("data/3_train.csv")
-  train4 = read_csv_train_test("data/4_train.csv")
-  train5 = read_csv_train_test("data/5_train.csv")
 
-  train_sets = [train1, train2, train3, train4, train5]
+  train_sets = [train1, train2, train3]
 
 
   bigram_dictionaries = get_pretrain_dictionaries(filename)
