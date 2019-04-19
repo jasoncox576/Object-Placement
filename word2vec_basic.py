@@ -244,7 +244,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
       train_labels = tf.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-    with tf.device('/gpu:0'):
+    with tf.device('/cpu:0'):
 
       # Look up embeddings for inputs.
       with tf.name_scope('embeddings'):
@@ -286,7 +286,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     # Construct the SGD optimizer using a learning rate of 1.0.
     with tf.name_scope('optimizer'):
-      optimizer = tf.train.AdamOptimizer(5e-4).minimize(loss)
+      optimizer = tf.train.AdamOptimizer(learning_rate=5e-4,beta1=0.9,beta2=0.999).minimize(loss)
       #optimizer = tf.train.GradientDescentOptimizer(1).minimize(loss)
       #cosine_optimizer = tf.train.GradientDescentOptimizer(1).minimize(cosine_loss)
 
@@ -355,7 +355,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             
 
               new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-              new_optimizer = tf.train.AdamOptimizer(5e-4).minimize(new_loss)
+              new_optimizer = tf.train.AdamOptimizer(learning_rate=5e-4,beta1=0.9,beta2=0.999).minimize(new_loss)
+              session.run(tf.global_variables_initializer())
 
         for step in xrange(num_steps):
           if not retraining:
@@ -423,7 +424,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
         joint_loss = tf.add(tf.math.multiply(loss, a), tf.math.multiply(cosine_loss, b)) 
-        joint_optimizer = tf.train.AdamOptimizer(5e-4).minimize(joint_loss)
+        joint_optimizer = tf.train.AdamOptimizer(learning_rate=5e-4,beta1=0.9,beta2=0.999).minimize(joint_loss)
+        session.run(tf.global_variables_initializer())
 
         if bigram_split:
             modded_turk_inputs, modded_turk_labels = split_bigrams(turk_batch_inputs, turk_batch_labels, unused_dictionary, reverse_dictionary)

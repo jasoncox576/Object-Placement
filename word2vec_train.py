@@ -45,12 +45,11 @@ if __name__=="__main__":
 
   wiki_dir = "wiki"
   bigram_dir = "bigram_wiki"
-  """
+
   print("TRAINING ON WIKIPEDIA")
   train_original_model(filename, load_dir=None, save_dir=wiki_dir)
   print("TRAINING BIGRAM-SPLIT ON WIKIPEDIA")
   train_original_bigram_split(filename, save_dir=bigram_dir)
-  """
   
 
 
