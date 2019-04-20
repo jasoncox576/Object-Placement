@@ -185,6 +185,17 @@ if __name__=="__main__":
                 results_writer.writerow([cosine_acc, output_acc])
                 results_writer.writerow([cosine_train_acc, output_train_acc])
 
+                joint_bigram_embeddings, joint_bigram_weights = get_embeddings(str(set_num+1)+"_joint_bigram", bigram_filename, bigram_dictionaries)
+                cosine_acc = evaluate_word2vec_cosine(test_x, test_y, joint_bigram_embeddings, joint_bigram_weights, bigram_unused_dictionary, "results.csv")
+                output_acc = evaluate_word2vec_output(test_x, test_y, joint_bigram_embeddings, joint_bigram_weights, bigram_unused_dictionary, "results.csv")
+                
+                print("TEST #8:::")
+                print("cosine acc: ", cosine_acc)
+                print("output acc: ", output_acc)
+                results_writer.writerow([cosine_acc, output_acc])
+                
+
+
 
                 print("=================================================================")
     

@@ -1,4 +1,5 @@
 # Object-Placement
+First, you must use `fix_file.py` to generate the corpus with bigrams.
 
 To generate all of the train and test files:
 
@@ -31,7 +32,9 @@ Test: 25% of everything, randomly sampled
 
 
 Then, you can use
+`python3 word2vec_train.py`  
+to generate all of the models, which will be saved to separate directories.
 `python3 word2vec_test.py` 
-to train and evaluate all six models on all five train/test sets, for both cosine and output vector metrics.
+to load and evaluate all seven models on all five train/test sets, for both cosine and output vector metrics.
 The results can be found in `accs_final.csv`. The cosine similarity accuracy comes first, then the output vector one.
 One line is printed for each of the models. After each set of six models, the results for the next dataset are printed.
