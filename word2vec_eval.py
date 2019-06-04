@@ -1,10 +1,10 @@
 import csv
-import spacy
-from nltk.corpus import wordnet as wn
-from sklearn.model_selection import StratifiedKFold
+#import spacy
+#from nltk.corpus import wordnet as wn
+#from sklearn.model_selection import StratifiedKFold
 from object_placement_turk import *
 #from word2vec_basic import *
-from word2vec_train import *
+from word2vec_train_joint import *
 import numpy as np
 import matrix_priors
 import random
@@ -55,14 +55,17 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
         index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
 
-        embed1 = emeddings[index1]
+        embed1 = embeddings[index1]
         embed2 = embeddings[index2]
 
-        n_embed1 = embed / np.linalg.norm(embed1)
-        n_embed2 = embed / np.linalg.norm(embed2)
+        n_embed1 = embed1 / np.linalg.norm(embed1)
+        n_embed2 = embed2 / np.linalg.norm(embed2)
 
         embeds = (embed1, embed2)
         n_embeds = (n_embed1, n_embed2)
+
+        indices = (index1, index2)
+
     else:
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
@@ -94,6 +97,22 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
 
 
 
+def cossim(w1, w2, embeddings, weights, dictionary, bigram_split=False):
+	
+	
+	if not bigram_split:
+		_, _, n_embed1 = get_word_primary(w1, dictionary, matrix_priors, embeddings) 
+		_, _, n_embed2 = get_word_primary(w1, dictionary, matrix_priors, embeddings) 
+		sim = np.dot(nembed1, nembed2)	
+
+	#NOTE: may use bigram split later, something to implement
+	
+
+
+
+
+
+
 def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
     out_file = open(outfile_name, 'w') 
 
@@ -112,18 +131,21 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
         c_indices, c_embeddings, c_nembeddings = get_word(c, dictionary, matrix_priors, embeddings, bigram_split)
         z_indices, z_embeddings, z_nembeddings = get_word(z, dictionary, matrix_priors, embeddings, bigram_split)
          
+        indices = [a_indices, b_indices, c_indices]
         nembeddings = [a_nembeddings, b_nembeddings, c_nembeddings]
 
         embedding_sim_vector = []
         if bigram_split:
-            for embeds in nembeddings:
-                if embeds[1] != None:
-                    sim1 = np.dot(p_nembedding, embeds[0])
-                    sim2 = np.dot(p_nembedding, embeds[1])
-                    embedding_sim_vector.append(np.mean(sim1,sim2))
-                else:
+            for embed_index in range(len(nembeddings)):
+                embeds = nembeddings[embed_index]
+                current_indices = indices[embed_index]
+                if current_indices[-1] == None:
                     sim = np.dot(p_nembedding, embeds[0])
                     embedding_sim_vector.append(sim)
+                else:
+                    sim1 = np.dot(p_nembedding, embeds[0])
+                    sim2 = np.dot(p_nembedding, embeds[1])
+                    embedding_sim_vector.append(np.mean([sim1,sim2]))
             
         else:
             embedding_sim_vector.append(np.dot(p_nembedding, a_nembeddings[0]))

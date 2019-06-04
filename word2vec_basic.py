@@ -192,7 +192,11 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
-def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False):
+def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5):
+
+  if joint_training:
+  	load_early = False
+
   vocabulary = read_data_nonzip(filename)
   vocabulary_size = 200000
 
@@ -303,10 +307,10 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
   # Step 5: Begin training.
-  if retraining: 
-      num_steps = 20000
-  else:
-      num_steps = 20000
+  num_steps = 1000
+  #if retraining: 
+  #else:
+  #    num_steps = 20000
 
 
   with tf.Session(graph=graph) as session:
@@ -317,7 +321,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     init.run()
     print('Initialized')
 
-    if get_embeddings or load:
+    if (get_embeddings or load) and load_early:
         saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
         print("MODEL RESTORED")
         if get_embeddings:
@@ -358,6 +362,12 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
               session.run(tf.global_variables_initializer())
 
+        if (get_embeddings or load) and not load_early:
+            saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
+            print("MODEL RESTORED")
+            if get_embeddings:
+                return embeddings.eval(), nce_weights.eval()
+
         for step in xrange(num_steps):
           if not retraining:
               batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
@@ -396,11 +406,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               average_loss = 0
 
     if joint_training:
-        # I know hardcoding the hyperparameters like this is not ideal, it's just easier than having a twentieth parameter to this word2vec_turk function
-        a = 0.5
-        b = 0.5
-        #a = 1/5 
-        #b = 1/128
+        a = a
+        b = b
         inputs, labels = process_inputs(X, y)
         turk_batch_inputs = np.array([], dtype=int)
         turk_batch_labels = np.array([], dtype=int)
@@ -430,23 +437,31 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         if bigram_split:
             modded_turk_inputs, modded_turk_labels = split_bigrams(turk_batch_inputs, turk_batch_labels, unused_dictionary, reverse_dictionary)
 
-
-
+        if (get_embeddings or load) and not load_early:
+            saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
+            print("MODEL RESTORED")
+            if get_embeddings:
+                return embeddings.eval(), nce_weights.eval()
 
         for step in xrange(num_steps):
-            sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-            if bigram_split:
-                modded_sg_inputs, modded_sg_labels = split_bigrams(sg_batch_inputs, sg_batch_labels, unused_dictionary, reverse_dictionary) 
-                feed_dict = {train_inputs: modded_sg_inputs, train_labels: modded_sg_labels, itemplaceholder: modded_turk_inputs, nexttoplaceholder: np.squeeze(modded_turk_labels)} 
-            else: feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
-            _, loss_val = session.run([joint_optimizer, joint_loss],
+                sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+                if bigram_split:
+                    modded_sg_inputs, modded_sg_labels = split_bigrams(sg_batch_inputs, sg_batch_labels, unused_dictionary, reverse_dictionary) 
+                    feed_dict = {train_inputs: modded_sg_inputs, train_labels: modded_sg_labels, itemplaceholder: modded_turk_inputs, nexttoplaceholder: np.squeeze(modded_turk_labels)} 
+                else: feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
+
+
+
+
+
+                _, loss_val = session.run([joint_optimizer, joint_loss],
                                                    feed_dict=feed_dict)
-            average_loss += loss_val
-            if step % 100 == 0:
-                if step > 0:
-                    average_loss /= 100
-                print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-                average_loss = 0
+                average_loss += loss_val
+                if step % 10 == 0:
+                    if step > 0:
+                        average_loss /= 10
+                    print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+                    average_loss = 0
         
 
 

@@ -1,6 +1,7 @@
-from sklearn.model_selection import StratifiedKFold
-import matrix_priors
+#from sklearn.model_selection import StratifiedKFold
+#import matrix_priors
 from make_train_test import *
+from sklearn.model_selection import StratifiedKFold
 import numpy as np
 import csv
 import copy
@@ -346,11 +347,64 @@ def get_train_test(filename):
   make_train_test_csv(train5, test5, "5")
   print("MADE SET #5")
 
+def get_validation_train_test(filename):
+
+	X = []
+	y = []
+	word_substitution_set = {
+	'orange' : 'orange',
+	'apple' : 'apple',
+	'corn' : 'corn',
+	'cereal_2' : 'cereal',
+	'jelly' : 'jelly',
+	'orange_juice' : 'orange_juice',
+	'grape_juice' : 'grape_juice',
+	'onion' : 'onion',
+	'crackers' : 'crackers',
+	'bread' : 'bread',
+	'potato_chips' : 'potato_chips',
+	'coke' : 'coke'
+	}
+
+	answer_word_set = set({'orange', 'apple', 'corn', 'cereal', 'jelly', 'orange_juice', 'grape_juice', 'onion', 'crackers', 'bread', 'potato_chips', 'coke'})
+
+
+	with open(filename) as csvfile:
+		reader = csv.reader(csvfile)
+		for row in reader:
+			if reader.line_num == 1:
+				continue
+
+			row_result = row[27:32]
+			answer_label = row_result[4]
+			answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
+
+			X.append([word_substitution_set[row_result[0]], word_substitution_set[row_result[1]], word_substitution_set[row_result[2]], word_substitution_set[row_result[3]]])
+			#Fetch the answer to the most recent instance
+			answer_word = X[-1][answer]
+			y.append(answer_word)
+			if not answer_word in answer_word_set:
+				sys.exit()
+
+	skf = StratifiedKFold(n_splits=3)
+	print(skf.get_n_splits(X, y))
+	print(skf)  
+	for train_index, test_index in skf.split(X, y):
+		print("TRAIN:", train_index, "TEST:", test_index)
+		X_train, X_test = X[train_index], X[test_index]
+		y_train, y_test = y[train_index], y[test_index]
+
+	for x in X_train:
+		print(x)
+
+	make_train_test_csv(copy.deepcopy(train1), copy.deepcopy(test1), "validation") 
 
 
 
 if __name__=='__main__':
     #get_train_test("final_cleaned_results.csv") 
+	get_validation_train_test("final_cleaned_results.csv")	
+	"""
     X1, y1 = read_csv_train_test("data/5_train.csv") 
     X2, y2 = read_csv_train_test("data/5_test.csv")
 
@@ -378,6 +432,7 @@ if __name__=='__main__':
     for elem in ones:
         print(elem)
     print("==============================")
+	"""
 
 
 
