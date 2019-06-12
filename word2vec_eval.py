@@ -4,7 +4,7 @@ import csv
 #from sklearn.model_selection import StratifiedKFold
 from object_placement_turk import *
 #from word2vec_basic import *
-from word2vec_train_joint import *
+from word2vec_train_tuned import *
 import numpy as np
 import matrix_priors
 import random
@@ -97,20 +97,6 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
 
 
 
-def cossim(w1, w2, embeddings, weights, dictionary, bigram_split=False):
-	
-	
-	if not bigram_split:
-		_, _, n_embed1 = get_word_primary(w1, dictionary, matrix_priors, embeddings) 
-		_, _, n_embed2 = get_word_primary(w1, dictionary, matrix_priors, embeddings) 
-		sim = np.dot(nembed1, nembed2)	
-
-	#NOTE: may use bigram split later, something to implement
-	
-
-
-
-
 
 
 def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
@@ -151,6 +137,7 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
             embedding_sim_vector.append(np.dot(p_nembedding, a_nembeddings[0]))
             embedding_sim_vector.append(np.dot(p_nembedding, b_nembeddings[0]))
             embedding_sim_vector.append(np.dot(p_nembedding, c_nembeddings[0]))
+        print("SIM SCORE: ", max(embedding_sim_vector), p, X[case][np.argmax(embedding_sim_vector)+1], embedding_sim_vector)
 
         indices = [a_indices, b_indices, c_indices]
         answer_index = X[case][1:].index(y[case])

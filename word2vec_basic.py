@@ -307,7 +307,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
   # Step 5: Begin training.
-  num_steps = 1000
+  num_steps = 30000
   #if retraining: 
   #else:
   #    num_steps = 20000
@@ -429,9 +429,12 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
             y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
 
-        cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-        joint_loss = tf.add(tf.math.multiply(loss, a), tf.math.multiply(cosine_loss, b)) 
-        joint_optimizer = tf.train.GradientDescentOptimizer(1).minimize(joint_loss)
+        cosine_loss = tf.math.scalar_mul(1000, tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1))
+        #cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+        joint_loss = tf.add(tf.math.scalar_mul(a, loss), tf.math.scalar_mul(b, cosine_loss)) 
+        joint_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(joint_loss)
+        #cosine_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(cosine_loss)
+        #reg_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(loss)
         session.run(tf.global_variables_initializer())
 
         if bigram_split:
@@ -451,11 +454,13 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                 else: feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
 
 
-
-
-
                 _, loss_val = session.run([joint_optimizer, joint_loss],
                                                    feed_dict=feed_dict)
+                #_, cosine_loss_val = session.run([cosine_optimizer, cosine_loss],
+                #                                   feed_dict=feed_dict)
+                #_, reg_loss_val = session.run([reg_optimizer, loss],
+                #                                   feed_dict=feed_dict)
+
                 average_loss += loss_val
                 if step % 10 == 0:
                     if step > 0:

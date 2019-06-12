@@ -103,13 +103,12 @@ def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_
 			return train_original_model(filename, save_dir=directory, load_dir=training_set+'_turk_cosine', load=True)  
 
 	if 'joint' in model:
-		
+		float_index = model.index('.')
+		a = float(model[float_index+1:float_index+2])/10
+		b = 1-a
 		if 'bigram' in model:
-			return train_joint_loss(X, y, dictionaries, filename, bigram_split=True, save_dir=directory, load_dir=directory, load=load)
+			return train_joint_loss(X, y, dictionaries, filename, bigram_split=True, save_dir=directory, load_dir=directory, load=load, a=a, b=b)
 		else:
-			float_index = model.index('.')
-			a = float(model[float_index+1:float_index+2])
-			b = 1-a
 			return train_joint_loss(X, y, dictionaries, filename, bigram_split=False, save_dir=directory, load_dir=directory, load=load, a=a, b=b)
 
 
@@ -181,7 +180,8 @@ if __name__=="__main__":
 	bigram_dictionaries = get_pretrain_dictionaries(filename)
 	bigram_unused_dictionary = bigram_dictionaries[2]
 
-	models = ['wiki_cosine', 'wiki_output', 'bigram_wiki_cosine', 'bigram_wiki_output', 'wiki+turk_cosine', 'wiki+turk_output', 'wiki+turk_bigram_cosine', 'wiki+turk_bigram_output', 'turk_cosine', 'turk_output', 'turk_bigram_cosine',  'turk_bigram_output', 'turk+wiki_cosine', 'turk+wiki_output', 'turk_wiki_bigram_cosine', 'turk+wiki_bigram_output', 'turk+wiki+turk_cosine', 'turk+wiki+turk_output', 'turk+wiki+turk_bigram_cosine', 'turk+wiki+turk_bigram_output']
+	#models = ['wiki_cosine', 'wiki_output', 'bigram_wiki_cosine', 'bigram_wiki_output', 'wiki+turk_cosine', 'wiki+turk_output', 'wiki+turk_bigram_cosine', 'wiki+turk_bigram_output', 'turk_cosine', 'turk_output', 'turk_bigram_cosine',  'turk_bigram_output', 'turk+wiki_cosine', 'turk+wiki_output', 'turk_wiki_bigram_cosine', 'turk+wiki_bigram_output', 'turk+wiki+turk_cosine', 'turk+wiki+turk_output', 'turk+wiki+turk_bigram_cosine', 'turk+wiki+turk_bigram_output']
+	models = []
 	for i in range(1,10):
 		models.append('joint_.'+str(i) + '_cosine')
 		models.append('joint_.'+str(i) + '_output')
