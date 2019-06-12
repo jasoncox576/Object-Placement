@@ -21,6 +21,10 @@ def spacy_rank_object_sims(w1, object_labels):
 
 def rank_object_sims(w1, object_labels, embeddings, weights, dictionary, bigram_split=False):
 
+        for label in object_labels:
+            if ' ' in label:
+                label = label.replace(' ', '_')
+
         sim_ranking = []
         for label in object_labels:
                 sim = cossim(w1, label, embeddings, weights, dictionary, bigram_split)
