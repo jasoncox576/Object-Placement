@@ -1,100 +1,127 @@
 package com.company;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Scanner;
 
-public class randomizer {
-    public static void main(String[] args) throws IOException {
-        ArrayList<String> items = new ArrayList<String>(Arrays.asList("Apple.thumb", "Avacado.thumb", "Bag.thumb", "Basket.thumb", "Beer.thumb", "Biscuits.thumb", "Black Pepper.thumb",
-                "Bowl.thumb", "Bread.thumb", "Candy Bar.thumb", "Cereal.thumb", "Chocolate Milk.thumb", "Chocolate Syrup.thumb", "Coconut Milk.thumb",
-                "Coke.thumb", "Corn.thumb", "Crackers.thumb", "Cup.thumb", "Dish.thumb", "Eggs.thumb", "Fork.thumb", "French Fries.thumb", "Grape Jelly.thumb",
-                "Grape Juice.thumb", "Green Tea.thumb", "Gum.thumb", "Hair Spray.thumb", "Kiwi.thumb", "Knife.thumb", "Licorice.thumb", "Macaroni.thumb",
-                "Milk.thumb", "Nuts.thumb", "Onion.thumb", "Orange Juice.thumb", "Orange.thumb", "Paprika.thumb", "Pear.thumb", "Potato Chips.thumb",
-                "Potato.thumb", "Pretzel.thumb", "Radish.thumb", "Rice.thumb", "Salt.thumb", "Sausage.thumb", "Smoothie.thumb", "Spoon.thumb", "Toilet Paper.thumb",
-                "Tomato Paste.thumb", "Tray.thumb", "Water Bottle.thumb"));
-
-        ArrayList<String> cutDown = new ArrayList<String>();
-
-        ArrayList<ArrayList<String>> one = new ArrayList<ArrayList<String>>();
-
-        ArrayList<String> temp = new ArrayList<String>();
-
-        Collections.shuffle(items);
-
-        for(int i =0; i < 20; i++){
-            cutDown.add(items.get(i));
+public class UTCombination {
+    static ArrayList<ArrayList<String>> temp = new ArrayList<ArrayList<String>>();
+    static ArrayList<ArrayList<String>> temp2 = new ArrayList<ArrayList<String>>();
+    static void combinationUtil(String arr[], String data[], int start,
+                                int end, int index, int r)
+    {
+        // Current combination is ready to be printed, print it
+        if (index == r) {
+            ArrayList<String> flag = new ArrayList<String>();
+            for (int j = 0; j < r; j++){
+//                System.out.print(data[j] + " ");
+                flag.add(data[j]);
+            }
+            Collections.shuffle(flag);
+            temp.add(flag);
+//            System.out.println("");
+            return;
         }
 
+        // replace index with all possible elements. The condition
+        // "end-i+1 >= r-index" makes sure that including one element
+        // at index will make a combination with remaining elements
+        // at remaining positions
+        for (int i=start; i<=end && end-i+1 >= r-index; i++)
+        {
+            data[index] = arr[i];
+            combinationUtil(arr, data, i+1, end, index+1, r);
+        }
+    }
 
-        for(int i  = 0; i < cutDown.size(); i++){
-            ArrayList<String> cutDownClone = new ArrayList<String>(cutDown);
-            temp.add(cutDownClone.get(i));
-            cutDownClone.remove(i);
-            for(int h = 0; h < cutDownClone.size(); h++){
-                ArrayList<String> cutDownClone2 = new ArrayList<String>(cutDownClone);
-                temp.add(cutDownClone2.get(h));
-                cutDownClone2.remove(h);
+    // The main function that prints all combinations of size r
+    // in arr[] of size n. This function mainly uses combinationUtil()
+    static void printCombination(String arr[], int n, int r)
+    {
+        // A temporary array to store all combination one by one
+        String data[]=new String[r];
 
-                for(int e = 0; e < cutDownClone2.size(); e++){
-                    ArrayList<String> cutDownClone3 = new ArrayList<String>(cutDownClone2);
-                    temp.add(cutDownClone3.get(e));
-                    cutDownClone3.remove(e);
-                    for(int o = 0; o < cutDownClone3.size(); o++){
-                        ArrayList<String> cutDownClone4 = new ArrayList<String>(cutDownClone3);
-                        temp.add(cutDownClone4.get(o));
-                        ArrayList<String> CopyTemp = new ArrayList<String>(temp);
-                        one.add(CopyTemp);
-                        temp.remove(3);
-                    }
-                    temp.remove(2);
+        // Print all combination using temprary array 'data[]'
+        combinationUtil(arr, data, 0, n-1, 0, r);
+    }
+
+    /*Driver function to check for above function*/
+    public static void main (String[] args) {
+        String arr[] = {"Coke.jpg", "Grape Juice.jpg", "Orange Juice.jpg",
+                "Cereal.jpg", "Apple.jpg", "Orange.jpg", "Crackers.jpg", "Potato Chips.jpg",
+                "Onion.jpg", "Corn.jpg",
+                "Jelly.jpg", "Bread.jpg"};
+        int r = 3;
+        int n = arr.length;
+        printCombination(arr, n, r);
+
+        for(int i = 0; i < temp.size(); i++){
+            ArrayList<String> current = new ArrayList<String>(temp.get(i));
+            for(int t = 0; t < 12; t++){
+                current.add(0, arr[t]);
+//                System.out.println(current.get(0) + "  " + current.get(1) + "  " + current.get(2) + "  " + current.get(3));
+                ArrayList<String> currently = new ArrayList<String>(current);
+                temp2.add(currently);
+
+                current.remove(0);
+            }
+        }
+
+        System.out.println(temp2.size());
+
+
+        for(int i = 0; i < temp2.size(); i++){
+            for(int t = 0; t < temp2.get(i).size(); t++){
+                if(t != temp2.get(i).size() - 1){
+                    System.out.print(temp2.get(i).get(t) + ",");
                 }
-                temp.remove(1);
+                else{
+                    System.out.print(temp2.get(i).get(t));
+                }
             }
-            temp.clear();
-
-        }
-
-        Collections.shuffle(one);
-
-        for(int x = 0; x < one.size(); x++){
-            ArrayList<String> A = new ArrayList<String>();
-            A = one.get(x);
-
-            for(int i = 0; i < A.size()-1; i++){
-                System.out.print(A.get(i) + ",");
-            }
-            System.out.print(A.get(A.size() - 1));
             System.out.println();
         }
 
-        Collections.shuffle(one);
+        Collections.shuffle(temp2);
 
-        for(int x = 0; x < one.size(); x++){
-            ArrayList<String> A = new ArrayList<String>();
-            A = one.get(x);
-
-            for(int i = 0; i < A.size()-1; i++){
-                System.out.print(A.get(i) + ",");
+        for(int i = 0; i < temp2.size(); i++){
+            for(int t = 0; t < temp2.get(i).size(); t++){
+                if(t != temp2.get(i).size() - 1){
+                    System.out.print(temp2.get(i).get(t) + ",");
+                }
+                else{
+                    System.out.print(temp2.get(i).get(t));
+                }
             }
-            System.out.print(A.get(A.size() - 1));
             System.out.println();
         }
 
-        Collections.shuffle(one);
+        Collections.shuffle(temp2);
 
-        for(int x = 0; x < one.size(); x++){
-            ArrayList<String> A = new ArrayList<String>();
-            A = one.get(x);
-
-            for(int i = 0; i < A.size() - 1; i++){
-                System.out.print(A.get(i) + ",");
+        for(int i = 0; i < temp2.size(); i++){
+            for(int t = 0; t < temp2.get(i).size(); t++){
+                if(t != temp2.get(i).size() - 1){
+                    System.out.print(temp2.get(i).get(t) + ",");
+                }
+                else{
+                    System.out.print(temp2.get(i).get(t));
+                }
             }
-            System.out.print(A.get(A.size() - 1));
             System.out.println();
         }
+
+        Collections.shuffle(temp2);
+
+        for(int i = 0; i < temp2.size(); i++){
+            for(int t = 0; t < temp2.get(i).size(); t++){
+                if(t != temp2.get(i).size() - 1){
+                    System.out.print(temp2.get(i).get(t) + ",");
+                }
+                else{
+                    System.out.print(temp2.get(i).get(t));
+                }
+            }
+            System.out.println();
+        }
+
     }
 }
