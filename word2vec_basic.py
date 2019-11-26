@@ -36,7 +36,7 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from tensorflow.contrib.tensorboard.plugins import projector
+#from tensorflow.contrib.tensorboard.plugins import projector
 from gensim.models.phrases import Phrases, Phraser
 from spacy.lang.en.stop_words import STOP_WORDS
 import re
@@ -98,16 +98,16 @@ def get_pretrain_dictionaries(filename):
 
 
 def normalize_embeddings(embeddings):
-    sess = tf.Session()
+    sess = tf.compat.v1.Session()
     with sess.as_default():
-        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
+        norm = tf.sqrt(tf.reduce_sum(input_tensor=tf.square(embeddings), axis=1, keepdims=True))
         normalized_embeddings = embeddings / norm
 
         return normalized_embeddings.eval()
 
 def bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary):
-    embed1 = tf.nn.embedding_lookup(embeddings, train_inputs[:, 0])
-    embed2 = tf.nn.embedding_lookup(embeddings, train_inputs[:, 1])
+    embed1 = tf.nn.embedding_lookup(params=embeddings, ids=train_inputs[:, 0])
+    embed2 = tf.nn.embedding_lookup(params=embeddings, ids=train_inputs[:, 1])
     return (embed1 + embed2) / 2
 
 
@@ -240,33 +240,34 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
   with graph.as_default():
 
     # Input data.
-    with tf.name_scope('inputs'):
+    with tf.compat.v1.name_scope('inputs'):
       if bigram_split:
-        train_inputs = tf.placeholder(tf.int32, shape=[None,2])
+        train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None,2])
       else:
-        train_inputs = tf.placeholder(tf.int32, shape=[None])
-      train_labels = tf.placeholder(tf.int32, shape=[None, 1])
+        train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None])
+      train_labels = tf.compat.v1.placeholder(tf.int32, shape=[None, 1])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-    with tf.device('/gpu:0'):
+    #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
+    with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
 
       # Look up embeddings for inputs.
-      with tf.name_scope('embeddings'):
+      with tf.compat.v1.name_scope('embeddings'):
         embeddings = tf.Variable(
-            tf.random_uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+            tf.random.uniform([vocabulary_size, embedding_size], -1.0, 1.0))
         #embed = tf.nn.
         if bigram_split:
             embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
-        else: embed = tf.nn.embedding_lookup(embeddings, train_inputs)
+        else: embed = tf.nn.embedding_lookup(params=embeddings, ids=train_inputs)
 
 
       # Construct the variables for the NCE loss
-      with tf.name_scope('weights'):
+      with tf.compat.v1.name_scope('weights'):
         nce_weights = tf.Variable(
-            tf.truncated_normal([vocabulary_size, embedding_size],
+            tf.random.truncated_normal([vocabulary_size, embedding_size],
                                 stddev=1.0 / math.sqrt(embedding_size)))
 
-      with tf.name_scope('biases'):
+      with tf.compat.v1.name_scope('biases'):
         nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
 
     # Compute the average NCE loss for the batch.
@@ -275,9 +276,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     # Explanation of the meaning of NCE loss:
     #   http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/
 
-    with tf.name_scope('loss'):
+    with tf.compat.v1.name_scope('loss'):
       loss = tf.reduce_mean(
-          tf.nn.nce_loss(
+          input_tensor=tf.nn.nce_loss(
               weights=nce_weights,
               biases=nce_biases,
               labels=train_labels,
@@ -286,24 +287,24 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               num_classes=vocabulary_size))
 
     # Add the loss value as a scalar to summary.
-    tf.summary.scalar('loss', loss)
+    tf.compat.v1.summary.scalar('loss', loss)
 
     # Construct the SGD optimizer using a learning rate of 1.0.
-    with tf.name_scope('optimizer'):
+    with tf.compat.v1.name_scope('optimizer'):
       #optimizer = tf.train.AdamOptimizer(learning_rate=5e-4,beta1=0.9,beta2=0.999).minimize(loss)
-      optimizer = tf.train.GradientDescentOptimizer(1).minimize(loss)
+      optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(loss)
       #cosine_optimizer = tf.train.GradientDescentOptimizer(1).minimize(cosine_loss)
 
     # Compute the cosine similarity between minibatch examples and all
     
     # Merge all summaries.
-    merged = tf.summary.merge_all()
+    merged = tf.compat.v1.summary.merge_all()
 
     # Add variable initializer.
-    init = tf.global_variables_initializer()
+    init = tf.compat.v1.global_variables_initializer()
 
     # Create a saver.
-    saver = tf.train.Saver()
+    saver = tf.compat.v1.train.Saver()
 
 
   # Step 5: Begin training.
@@ -313,9 +314,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
   #    num_steps = 20000
 
 
-  with tf.Session(graph=graph) as session:
+  with tf.compat.v1.Session(graph=graph) as session:
     # Open a writer to write summaries.
-    writer = tf.summary.FileWriter(log_dir, session.graph)
+    writer = tf.compat.v1.summary.FileWriter(log_dir, session.graph)
 
     # We must initialize all variables before we use them.
     init.run()
@@ -328,7 +329,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             return embeddings.eval(), nce_weights.eval()
 
     print("LEN EMBEDDINGS")
-    print(tf.size(embeddings), tf.size(embeddings[0]))
+    print(tf.size(input=embeddings), tf.size(input=embeddings[0]))
     average_loss = 0
     #batch_inputs = np.zeros([batch_size])
     batch_inputs = np.array([], dtype=int)
@@ -347,20 +348,20 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
           if cosine:
               if bigram_split:
-                  itemplaceholder = tf.placeholder(tf.int32, [None,2])
-                  nexttoplaceholder = tf.placeholder(tf.int32, [None])
+                  itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None,2])
+                  nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
                   x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-                  y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+                  y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
               else:
-                  itemplaceholder = tf.placeholder(tf.int32, [None])
-                  nexttoplaceholder = tf.placeholder(tf.int32, [None])
-                  x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-                  y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+                  itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
+                  nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
+                  x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
+                  y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
             
 
-              new_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-              new_optimizer = tf.train.GradientDescentOptimizer(1).minimize(new_loss)
-              session.run(tf.global_variables_initializer())
+              new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+              new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(new_loss)
+              session.run(tf.compat.v1.global_variables_initializer())
 
         if (get_embeddings or load) and not load_early:
             saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
@@ -393,7 +394,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                   _, loss_val = session.run([new_optimizer, new_loss],
                                                          feed_dict=feed_dict)
           else:
-                  run_metadata = tf.RunMetadata()
+                  run_metadata = tf.compat.v1.RunMetadata()
                   _, summary, loss_val = session.run([optimizer, merged, loss],
                                                          feed_dict=feed_dict,
                                                          run_metadata=run_metadata)
@@ -418,24 +419,24 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         turk_batch_labels = np.reshape(turk_batch_labels, (len(turk_batch_labels), 1))
 
         if bigram_split:
-            itemplaceholder = tf.placeholder(tf.int32, [None,2])
-            nexttoplaceholder = tf.placeholder(tf.int32, [None])
+            itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None,2])
+            nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-            y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+            y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
 
         else:
-            itemplaceholder = tf.placeholder(tf.int32, [None])
-            nexttoplaceholder = tf.placeholder(tf.int32, [None])
-            x = tf.nn.embedding_lookup(embeddings, itemplaceholder)
-            y = tf.nn.embedding_lookup(embeddings, nexttoplaceholder)
+            itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
+            nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
+            x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
+            y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
 
-        cosine_loss = tf.math.scalar_mul(1000, tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1))
+        cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1))
         #cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
         joint_loss = tf.add(tf.math.scalar_mul(a, loss), tf.math.scalar_mul(b, cosine_loss)) 
-        joint_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(joint_loss)
+        joint_optimizer = tf.compat.v1.train.GradientDescentOptimizer(5e-4).minimize(joint_loss)
         #cosine_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(cosine_loss)
         #reg_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(loss)
-        session.run(tf.global_variables_initializer())
+        session.run(tf.compat.v1.global_variables_initializer())
 
         if bigram_split:
             modded_turk_inputs, modded_turk_labels = split_bigrams(turk_batch_inputs, turk_batch_labels, unused_dictionary, reverse_dictionary)

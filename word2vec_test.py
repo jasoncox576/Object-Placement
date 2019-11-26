@@ -47,9 +47,9 @@ if __name__=="__main__":
 
                 if set_num < 3:
                     train_set = 0
-                if set_num = 3:
+                if set_num == 3:
                     train_set = 1
-                if set_num = 4:
+                if set_num == 4:
                     train_set = 2
                 
                 train_x, train_y = train_sets[train_set]
