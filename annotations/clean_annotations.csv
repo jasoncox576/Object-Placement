@@ -1,0 +1,7 @@
+"honey_oat_cereal,rice_krispies",rice_krispies
+"dr_pepper,sprite","rice_krispies,honey_oat_cereal,sprite"
+"ritz_crackers,honey_oat_cereal","rice_krispies,honey_oat_cereal,sprite,dr_pepper"
+"barrys_tea,ritz_crackers","rice_krispies,honey_oat_cereal,sprite,dr_pepper,ritz_crackers"
+"apple,banana","rice_krispies,honey_oat_cereal,sprite,dr_pepper,ritz_crackers,barrys_tea,banana"
+"orange,apple","rice_krispies,honey_oat_cereal,sprite,dr_pepper,ritz_crackers,barrys_tea,banana,apple"
+"noodle_packet,barrys_tea","rice_krispies,honey_oat_cereal,sprite,dr_pepper,ritz_crackers,barrys_tea,banana,apple,orange,campbells_soup"

@@ -1,0 +1,11 @@
+rice_krispies, empty
+honey_oat_cereal, rice_krispies
+sprite, empty
+dr_pepper, sprite
+ritz_crackers, honey_oat_cereal
+barrys_tea, ritz_crackers
+banana, empty
+apple, banana
+orange, apple
+campbells_soup, empty
+noodle_packet, barrys_tea

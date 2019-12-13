@@ -386,26 +386,34 @@ def get_validation_train_test(filename):
 			if not answer_word in answer_word_set:
 				sys.exit()
 
+	X = np.array(X)
+	y = np.array(y)
 	skf = StratifiedKFold(n_splits=3)
 	print(skf.get_n_splits(X, y))
-	print(skf)  
+	print(X)
+    # X = np.array(X)
+	# n = 0
 	for train_index, test_index in skf.split(X, y):
+		# n = n + 1
 		print("TRAIN:", train_index, "TEST:", test_index)
 		X_train, X_test = X[train_index], X[test_index]
 		y_train, y_test = y[train_index], y[test_index]
+		# make_train_test_csv([X_train, y_train], [X_test, y_test], "validation" + n)
+		# print(X_train)
 
-	for x in X_train:
-		print(x)
+	#for x in X_train:
+	#	print(x)
 
 	make_train_test_csv(copy.deepcopy(train1), copy.deepcopy(test1), "validation") 
 
 
 
 if __name__=='__main__':
-    #get_train_test("final_cleaned_results.csv") 
-	get_validation_train_test("final_cleaned_results.csv")	
-	"""
-    X1, y1 = read_csv_train_test("data/5_train.csv") 
+    get_train_test("final_cleaned_results.csv") 
+    # get_validation_train_test("final_cleaned_results.csv")
+    
+    """
+    X1, y1 = read_csv_train_test("data/5_train.csv")
     X2, y2 = read_csv_train_test("data/5_test.csv")
 
     X = np.concatenate([X1, X2])
@@ -432,14 +440,4 @@ if __name__=='__main__':
     for elem in ones:
         print(elem)
     print("==============================")
-	"""
-
-
-
-
-
-
-
-
-
-
+    """

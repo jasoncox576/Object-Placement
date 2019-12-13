@@ -5,7 +5,7 @@ from wordnet_test import *
 import csv
 
 if __name__=="__main__":
-    bigram_filename = '/home/justin/Data/fil9_bigram'
+    bigram_filename = '/home/users/fri/lina_ws/Object-Placement/fil9_bigram'
     #bigram_filename = 'modified_text'
     #bigram_filename = 'modified_text'
     #turk_data_filename = 'cleaned_results.csv'
