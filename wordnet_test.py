@@ -19,28 +19,22 @@ def evaluate_wordnet(X, y, dictionary, rows_dict=None):
 
 
     for case in range(len(X)):
-
         primary = X[case][0]
 
         primary_syn = matrix_priors.get_synset_and_strip(primary)[0]
 
-        a = X[case][1]
-        a_syn = matrix_priors.get_synset_and_strip(a)[0]
-
-        b = X[case][2]
-        b_syn = matrix_priors.get_synset_and_strip(b)[0]
-
-        c = X[case][3]
-        c_syn = matrix_priors.get_synset_and_strip(c)[0]
-
+        other_objects = X[case][1:]
         wordnet_sim_vector = []
+        for obj in other_objects:
+            new_syn = matrix_priors.get_synset_and_strip(obj)[0]
+            wordnet_sim_vector.append(primary_syn.path_similarity(new_syn)
+
         wordnet_sim_vector.append(primary_syn.path_similarity(a_syn))
         wordnet_sim_vector.append(primary_syn.path_similarity(b_syn))
         wordnet_sim_vector.append(primary_syn.path_similarity(c_syn))
 
         if(np.argmax(wordnet_sim_vector) == X[case][1:].index(y[case])):
             total_correct_wordnet += 1
-            #print("!!!!!!!!!!!!!!!!")
         """
         print(X[case])
         print("ACTUAL ANSWER: ", y[case])

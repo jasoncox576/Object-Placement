@@ -137,7 +137,7 @@ def remove_similars(X, y):
 
     #taking out any instances with these objects, as they are
     #similar to 'grape_juice', 'bread', and 'orange' respectively.
-    similar_objects = ["orange_juice", "crackers", "apple"]
+    similar_objects = ["orange"]
 
     train_x = []
     train_y = []
@@ -244,6 +244,7 @@ def get_train_test(filename):
   #Yes, this is a horrible way to do this. I'm over it.
   X = []
   y = []
+  """
   word_substitution_set = {
     'orange' : 'orange',
     'apple' : 'apple',
@@ -258,23 +259,36 @@ def get_train_test(filename):
     'potato_chips' : 'potato_chips',
     'coke' : 'coke'
   }
+  """
 
-  answer_word_set = set({'orange', 'apple', 'corn', 'cereal', 'jelly', 'orange_juice', 'grape_juice', 'onion', 'crackers', 'bread', 'potato_chips', 'coke'})
+  #answer_word_set = set({'orange', 'apple', 'corn', 'cereal', 'jelly', 'orange_juice', 'grape_juice', 'onion', 'crackers', 'bread', 'potato_chips', 'coke'})
   
-
-  """
-  Cross validation of the data
-
-  Uses standard k-fold algorithm.
-  """
-
   with open(filename) as csvfile:
       #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
       reader = csv.reader(csvfile)
       for row in reader:
-          if reader.line_num == 1:
-              continue
 
+          primary_items = row[0]
+          secondary_items = row[1]
+
+          # remove unnecessary quotes from the outside of comma-separted-value
+          primary_items = primary_items.replace('"', '')
+          secondary_items = secondary_items.replace('"', '')
+
+          # split items delineated by comma into list of strings
+          primary_items = primary_items.split(",")
+          secondary_items = secondary_items.split(",")
+
+          primary_object = primary_items[0]
+          answer_label = primary_items[1]
+
+          secondary_items.insert(0, primary_object)
+          X.append(secondary_items) 
+          print(X[-1])
+          y.append(answer_label)
+          print(y[-1])
+
+          """
           row_result = row[27:32]
           answer_label = row_result[4]
           answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
@@ -283,11 +297,14 @@ def get_train_test(filename):
           #Fetch the answer to the most recent instance
           answer_word = X[-1][answer]
           y.append(answer_word)
+          """
 
+          """
 
           if not answer_word in answer_word_set:
             sys.exit()
-          
+          """
+  """ 
   #This is train/test set #1
   X1 = copy.deepcopy(X)
   y1 = copy.deepcopy(y) 
@@ -331,6 +348,7 @@ def get_train_test(filename):
   make_train_test_csv(train3_copy, test3_copy, "3")
   #make_train_test_csv(train3, test3, "3")
   print("MADE SET #3")
+  """
 
   #This is train/test set #4
   X1 = copy.deepcopy(X)
@@ -409,8 +427,9 @@ def get_validation_train_test(filename):
 
 
 if __name__=='__main__':
-    get_train_test("final_cleaned_results.csv") 
+    #get_train_test("final_cleaned_results.csv") 
     # get_validation_train_test("final_cleaned_results.csv")
+    get_train_test("annotations/clean_annotations.csv")
     
     """
     X1, y1 = read_csv_train_test("data/5_train.csv")

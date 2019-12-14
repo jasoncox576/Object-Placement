@@ -106,19 +106,22 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
 
     for case in range(len(X)):
         p = X[case][0]          #primary
-        a = X[case][1]          #choice a
-        b = X[case][2]          #choice b
-        c = X[case][3]          #choice c
+        other_objects = X[case][1:] 
         z = y[case]             #answer
 
+        indices = []
+        nembeddings = []
+
+
         p_indices, p_embedding, p_nembedding = get_word_primary(p, dictionary, matrix_priors, embeddings, bigram_split)
-        a_indices, a_embeddings, a_nembeddings = get_word(a, dictionary, matrix_priors, embeddings, bigram_split)
-        b_indices, b_embeddings, b_nembeddings = get_word(b, dictionary, matrix_priors, embeddings, bigram_split)
-        c_indices, c_embeddings, c_nembeddings = get_word(c, dictionary, matrix_priors, embeddings, bigram_split)
         z_indices, z_embeddings, z_nembeddings = get_word(z, dictionary, matrix_priors, embeddings, bigram_split)
          
-        indices = [a_indices, b_indices, c_indices]
-        nembeddings = [a_nembeddings, b_nembeddings, c_nembeddings]
+        for obj in other_objects:
+            index_set, embed, nembeds = get_word(obj, dictionary, matrix_priors, embeddings, bigram_split) 
+            indices.append(index_set)
+            nembeddings.append(nembeds)
+
+
 
         embedding_sim_vector = []
         if bigram_split:
@@ -134,16 +137,13 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
                     embedding_sim_vector.append(np.mean([sim1,sim2]))
             
         else:
-            embedding_sim_vector.append(np.dot(p_nembedding, a_nembeddings[0]))
-            embedding_sim_vector.append(np.dot(p_nembedding, b_nembeddings[0]))
-            embedding_sim_vector.append(np.dot(p_nembedding, c_nembeddings[0]))
+            for embeds in nembeddings: 
+                embedding_sim_vector.append(np.dot(p_nembedding, embeds[0]))
         print("SIM SCORE: ", max(embedding_sim_vector), p, X[case][np.argmax(embedding_sim_vector)+1], embedding_sim_vector)
 
-        indices = [a_indices, b_indices, c_indices]
         answer_index = X[case][1:].index(y[case])
         machine_answer_index = np.argmax(embedding_sim_vector)
 
-        #out_file.write("%d, %d, %d, %d, %d, %d, %d, %d, %s, %s, %s, %s, %s \n" % (p_index, a_index, b_index, c_index, z_index, indices[machine_answer_index], answer_index, machine_answer_index, p, a, b, c, z))
         out_file.write("%s, %s \n" % (p, z))
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
@@ -162,18 +162,20 @@ def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name
 
     for case in range(len(X)):
         p = X[case][0]          #primary
-        a = X[case][1]          #choice a
-        b = X[case][2]          #choice b
-        c = X[case][3]          #choice c
+        other_objects = X[case][1:] 
         z = y[case]             #answer
 
+        indices = []
+        nembeddings = []
+
         p_indices, p_embedding, p_nembedding = get_word_primary(p, dictionary, matrix_priors, embeddings, bigram_split)
-        a_indices, a_embeddings, a_nembeddings = get_word(a, dictionary, matrix_priors, embeddings, bigram_split)
-        b_indices, b_embeddings, b_nembeddings = get_word(b, dictionary, matrix_priors, embeddings, bigram_split)
-        c_indices, c_embeddings, c_nembeddings = get_word(c, dictionary, matrix_priors, embeddings, bigram_split)
+
         z_indices, z_embeddings, z_nembeddings = get_word(z, dictionary, matrix_priors, embeddings, bigram_split)
          
-        indices = [a_indices, b_indices, c_indices]
+        for obj in other_objects:
+            index_set, embed, nembeds = get_word(obj, dictionary, matrix_priors, embeddings, bigram_split) 
+            indices.append(index_set)
+            nembeddings.append(nembeds)
 
         output_vector = np.matmul([p_embedding], np.transpose(weights))
         output_vector = np.reshape(output_vector, (len(output_vector[0])))
