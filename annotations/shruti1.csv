@@ -1,5 +1,5 @@
-rice_krispies, empty
-honey_oat_cereal, rice_krispies
+﻿rice_krispies_cereal, empty
+honey_oat_cereal, rice_krispies_cereal
 sprite, empty
 dr_pepper, sprite
 ritz_crackers, honey_oat_cereal

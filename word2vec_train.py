@@ -29,13 +29,12 @@ if __name__=="__main__":
   filename = 'fil9_bigram'
   #filename = 'text8'
   #filename = 'modified_text'
-  turk_filename = "final_cleaned_results.csv"
+  turk_filename = "annotations/clean_annotations.csv"
   
-  train1 = read_csv_train_test("data/1_train.csv")
-  train2 = read_csv_train_test("data/2_train.csv")
-  train3 = read_csv_train_test("data/3_train.csv")
+  train1 = read_csv_train_test("4_train.csv")
+  train2 = read_csv_train_test("5_train.csv")
 
-  train_sets = [train1, train2, train3]
+  train_sets = [train1, train2]
 
 
   bigram_dictionaries = get_pretrain_dictionaries(filename)
@@ -45,9 +44,9 @@ if __name__=="__main__":
   bigram_dir = "bigram_wiki"
 
   print("TRAINING ON WIKIPEDIA")
-  train_original_model(filename, load_dir=None, save_dir=wiki_dir)
+#   train_original_model(filename, load_dir=None, save_dir=wiki_dir)
   print("TRAINING BIGRAM-SPLIT ON WIKIPEDIA")
-  train_original_bigram_split(filename, save_dir=bigram_dir)
+#   train_original_bigram_split(filename, save_dir=bigram_dir)
   
 
 

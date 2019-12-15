@@ -1,6 +1,6 @@
 #from word2vec_basic import *
 from word2vec_eval import *
-from wordnet_test import *
+# from wordnet_test import *
 
 import csv
 

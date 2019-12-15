@@ -1,3 +1,7 @@
 fil9_bigram
 /bigram_wiki/
 /wiki/
+/1_wiki+turk_cosine/
+/annotations/*
+!/annotations/clean_annotations.csv
+!/annotations/clean_annotations.py
