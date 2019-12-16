@@ -1,5 +1,6 @@
 from word2vec_basic import *
 from object_placement_turk import *
+import csv
 
 def train_original_model(filename, save_dir, load_dir, load=False):
     word2vec_turk(save_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=False, load=load)
@@ -36,9 +37,15 @@ if __name__=="__main__":
 
   train_sets = [train1, train2]
 
-
   bigram_dictionaries = get_pretrain_dictionaries(filename)
   bigram_unused_dictionary = bigram_dictionaries[2]
+
+#   with open("bigramdicts", "w+") as write_file:
+#         writer = csv.writer(write_file)
+#         for key,value in bigram_unused_dictionary.items():
+#             writer.writerow([key])
+
+  
 
   wiki_dir = "wiki"
   bigram_dir = "bigram_wiki"

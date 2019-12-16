@@ -143,6 +143,7 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
 
         answer_index = X[case][1:].index(y[case])
         machine_answer_index = np.argmax(embedding_sim_vector)
+ 
 
         out_file.write("%s, %s \n" % (p, z))
 

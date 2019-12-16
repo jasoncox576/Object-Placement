@@ -66,7 +66,7 @@ with open('text8', 'r') as filename:
 
   sentences = get_sentences(filename)
   phraser = build_phrases(sentences)
-  filename = '/home/justin/Data/fil9'
-  out_filename = '/home/justin/Data/fil9_bigram'
+  filename = '/home/users/fri/lina_ws/Object-Placement/fil9'
+  out_filename = '/home/users/fri/lina_ws/Object-Placement/fil9_bigram'
   sentences_to_bi_grams(phraser, filename, out_filename) 
 
