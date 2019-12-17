@@ -228,7 +228,7 @@ def read_csv_train_test(filename):
     with open(filename, 'r') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
-            X.append(row[:4])
+            X.append(row[:-1])
             y.append(row[-1])
     
     return X, y
