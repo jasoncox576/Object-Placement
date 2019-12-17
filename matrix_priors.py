@@ -30,7 +30,11 @@ def get_synset_and_strip(word):
         synset_num = int(word[-1]) 
         word = word[:-2]
     
-    synset = wn.synsets(word.replace(" ", "_"))[synset_num]    
+    word.replace(" ", "_")
+    if len(wn.synsets(word)) > 0:
+        synset = wn.synsets(word)[synset_num] 
+    else:
+        synset = None
     return (synset, word)
 
 
@@ -185,6 +189,3 @@ def fill_matrix_word2vec(rows_dict):
 #word2vec_matrix = fill_matrix_word2vec(rows_dict)
 #print(rows_dict)
 #print(word2vec_matrix)
-
-
-
