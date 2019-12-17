@@ -8,8 +8,8 @@ if __name__=="__main__":
     bigram_filename = '/home/users/fri/lina_ws/Object-Placement/fil9_bigram'
     #bigram_filename = 'modified_text'
     #bigram_filename = 'modified_text'
-    #turk_data_filename = 'cleaned_results.csv'
-    turk_data_filename = 'final_cleaned_results.csv'
+    turk_data_filename = 'cleaned_results.csv'
+    # turk_data_filename = 'final_cleaned_results.csv'
 
     bigram_dictionaries = get_pretrain_dictionaries(bigram_filename) 
     bigram_unused_dictionary = bigram_dictionaries[2]
@@ -18,18 +18,14 @@ if __name__=="__main__":
             results_writer = csv.writer(accuracies_file)
 
             #X, y = get_train_test(turk_data_filename) 
-            test1 = read_csv_train_test("data/1a_test.csv")
-            test2 = read_csv_train_test("data/1b_test.csv")
-            test3 = read_csv_train_test("data/1c_test.csv")
-            test4 = read_csv_train_test("data/2_test.csv")
-            test5 = read_csv_train_test("data/3_test.csv")
+            test1 = read_csv_train_test("4_test.csv")
+            test2 = read_csv_train_test("5_test.csv")
 
-            train1 = read_csv_train_test("data/1_train.csv")
-            train2 = read_csv_train_test("data/2_train.csv")
-            train3 = read_csv_train_test("data/3_train.csv")
+            train1 = read_csv_train_test("4_train.csv")
+            train2 = read_csv_train_test("5_train.csv")
 
-            test_sets = [test1, test2, test3, test4, test5]
-            train_sets = [train1, train2, train3]
+            test_sets = [test1, test2]
+            train_sets = [train1, train2]
 
             for set_num in range(len(test_sets)):
                         
@@ -116,8 +112,8 @@ if __name__=="__main__":
                 # THIS IS FOR TEST #4
                 # load the model that was just trained on turk, train it on wikipedia,
                 # test.
-                cosine_embeddings, cosine_weights = get_embeddings(setnum_str+"turk+wiki_cosine", bigram_filename, bigram_dictionaries)
-                output_embeddings, output_weights = get_embeddings(setnum_str+"turk+wiki_output", bigram_filename, bigram_dictionaries)
+                cosine_embeddings, cosine_weights = get_embeddings(setnum_str+"_turk+wiki_cosine", bigram_filename, bigram_dictionaries)
+                output_embeddings, output_weights = get_embeddings(setnum_str+"_turk+wiki_output", bigram_filename, bigram_dictionaries)
                 
 
                 cosine_acc = evaluate_word2vec_cosine(test_x, test_y, cosine_embeddings, cosine_weights, bigram_unused_dictionary, "results.csv")
@@ -187,6 +183,3 @@ if __name__=="__main__":
 
 
                 print("=================================================================")
-    
-
-

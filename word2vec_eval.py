@@ -101,8 +101,12 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
 
 def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
     out_file = open(outfile_name, 'w') 
+    hist_file = open("choices_res.csv", 'a')
 
     total_correct = 0
+    first_choice = 0
+    second_choice = 0
+    third_choice = 0
 
     for case in range(len(X)):
         p = X[case][0]          #primary
@@ -143,12 +147,34 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
 
         answer_index = X[case][1:].index(y[case])
         machine_answer_index = np.argmax(embedding_sim_vector)
- 
+
+        first_choice_index = np.argmax(embedding_sim_vector)
+
+        num_choices = len(embedding_sim_vector) 
+        second_choice_index = -1
+        third_choice_index = -1
+            
+        if (num_choices >= 3):
+            third_choice_index = embedding_sim_vector.index(np.partition(embedding_sim_vector, -3)[-3])
+        if (num_choices >= 2):
+            second_choice_index = embedding_sim_vector.index(np.partition(embedding_sim_vector, -2)[-2])
+
+        if (first_choice_index == X[case][1:].index(y[case])):
+            first_choice += 1
+        elif (second_choice_index == X[case][1:].index(y[case])):
+            second_choice += 1
+        elif (third_choice_index == X[case][1:].index(y[case])):
+            third_choice += 1
 
         out_file.write("%s, %s \n" % (p, z))
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct += 1
+
+    res = ("first choice: " + str(first_choice) + " second choice: " + str(second_choice) + " third choice: " + str(third_choice) + "\n")
+    hist_file.write(res)  
+    hist_file.close() 
+    out_file.write(res) 
 
     return total_correct/len(X)
 
@@ -156,10 +182,13 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
 
 
 def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
-    out_file = open(outfile_name, 'w') 
+    out_file = open(outfile_name, 'w')
+    hist_file = open("choices_res.csv", 'a') 
 
     total_correct = 0
-    
+    first_choice = 0
+    second_choice = 0
+    third_choice = 0
 
     for case in range(len(X)):
         p = X[case][0]          #primary
@@ -198,7 +227,27 @@ def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name
             if X[case][0] in X[case][1:]:
                 total_correct += 1
 
-        
+        first_choice_index = np.argmax(output_sim_vector)
+        num_choices = len(output_sim_vector) 
+        second_choice_index = -1
+        third_choice_index = -1
+            
+        if (num_choices >= 3):
+            third_choice_index = output_sim_vector.index(np.partition(output_sim_vector, -3)[-3])
+        if (num_choices >= 2):
+            second_choice_index = output_sim_vector.index(np.partition(output_sim_vector, -2)[-2])
+
+        if (first_choice_index == X[case][1:].index(y[case])):
+            first_choice += 1
+        elif (second_choice_index == X[case][1:].index(y[case])):
+            second_choice += 1
+        elif (third_choice_index == X[case][1:].index(y[case])):
+            third_choice += 1
+        print(first_choice, second_choice, third_choice)
+
+    res = ("first choice: " + str(first_choice) + " second choice: " + str(second_choice) + " third choice: " + str(third_choice) + "\n")
+    hist_file.write(res)  
+    hist_file.close()   
     out_file.close();
 
 
@@ -206,25 +255,21 @@ def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name
 
 
 """
-
 if __name__=="__main__":
     bigram_filename = '/home/justin/Data/fil9'
     #bigram_filename = 'modified_text'
     #original_filename = 'text8'
-
     #train_original_model(filename=original_filename, bigrams=False)
     if not MODEL_EXISTS_ALREADY:
         train_original_model(filename=bigram_filename) 
     
     bigram_dictionaries = get_pretrain_dictionaries(bigram_filename) 
     bigram_unused_dictionary = bigram_dictionaries[2]
-
     accs_pretrain = np.zeros(4)
     accs = np.zeros(4)
     #regular_dictionaries = get_pretrain_dictionaries(original_filename)
     #regular_unused_dictionary = regular_dictionaries[2]
     
-
     X, y, split = get_train_test(bigram_unused_dictionary, filename) 
     
     word2vec_acc = 0
@@ -234,11 +279,8 @@ if __name__=="__main__":
     retrained_alt_acc = 0
     empirical_acc = 0
     random_acc = 0
-
-
     train = []
     test = []
-
     #Does no training, just a hacky way to get the embeddings off of the original base model without trying to load the tensor individually.
     initial_bigram_embeddings, initial_bigram_weights = word2vec_basic('log', bigram_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
     #initial_regular_embeddings = word2vec_basic('log2', original_filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=True)
@@ -247,17 +289,14 @@ if __name__=="__main__":
     for train_i, test_i in split:
         train.append(train_i)
         test.append(test_i)
-
     print("Beginning to retrain word2vec and evaluate models...")
     #print(train)
-
     for test_num in range(len(test)):
        next_word2vec_acc, next_word2vec_alt_acc, new_accs_pretrain = evaluate_word2vec(X, y, test[test_num], initial_bigram_embeddings, initial_bigram_weights, bigram_unused_dictionary)
        final_bigram_embeddings, final_bigram_weights = retrain_model(bigram_filename, X, y, train[test_num], bigram_dictionaries) 
        next_retrained_acc, next_retrained_alt_acc, new_accs = evaluate_word2vec(X, y, test[test_num], final_bigram_embeddings, final_bigram_weights, bigram_unused_dictionary)
        next_wordnet_acc = evaluate_wordnet(X, y, test[test_num], bigram_unused_dictionary)
        next_random_acc = eval_random(X, y, test[test_num])
-
        print("next word2vec acc: ", next_word2vec_acc)
        print("next word2vec alt acc: ", next_word2vec_alt_acc)
        print("next retrained word2vec acc: ", next_retrained_acc)
@@ -282,7 +321,6 @@ if __name__=="__main__":
     accs = np.divide(accs, len(test))
     accs_pretrain = np.divide(accs_pretrain, len(test))
        
-
     #for test_num in range(len(test)):
     #    empirical_matrix = matrix_priors.fill_empirical_matrix(X, y, train[test_num], rows_dict)
     #
@@ -290,53 +328,32 @@ if __name__=="__main__":
     #    print("next empirical acc: ", next_empirical_acc)
     #    empirical_acc += next_empirical_acc
     #empirical_acc /= len(test)
-
-
     print("Averaged accuracy of word2vec is:")
     print(str(word2vec_acc))
-
     print("Averaged accuracy of word2vec alt is: ")
     print(str(word2vec_alt_acc))
-
     print("Averaged accuracy of retrained word2vec is:")
     print(str(retrained_acc))
-
     print("Averaged accuracy of retrained alt is:")
     print(str(retrained_alt_acc))
-
     print("Averaged accuracy of wordnet is:")
     print(str(wordnet_acc))
-
     print("Averaged accuracy of empirical is:")
     print(str(empirical_acc))
     
-
     print("Averaged accuracy of random guessing is:")
     print(str(random_acc))
-
-
     print("Averaged accs bigram/unigram")
     print(accs)
-
     print("Averaged pretrain accs bigram/unigram")
     print(accs_pretrain)
-
     #print("\nTotal accuracy of matrix is:")
     #print(str(matrix_correct_counter / total_row_counter))
-
     #print("\nTotal accuracy of word2vec matrix is:")
     #print(str(word2vec_matrix_correct_counter / total_row_counter)) 
-
     #print("\nTotal accuracy of empirical matrix is:")
     #print(str(empirical_matrix_correct_counter / total_row_counter))
-
-
-
-
     print("================================================")
     print("Looking at disagreeance in data")
-
     #instances_disagree(X, y)
 """    
-
-
