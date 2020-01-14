@@ -2,6 +2,7 @@ from tensorflow.contrib.tensorboard.plugins import projector
 from gensim.models.phrases import Phrases, Phraser
 from spacy.lang.en.stop_words import STOP_WORDS
 import re
+import os
 
 #Current work towards extracting bigram phrases from data below
 # E.G. Data file contains 'new','york', but we want 'new_york'
@@ -66,7 +67,7 @@ with open('text8', 'r') as filename:
 
   sentences = get_sentences(filename)
   phraser = build_phrases(sentences)
-  filename = '/home/users/fri/lina_ws/Object-Placement/fil9'
-  out_filename = '/home/users/fri/lina_ws/Object-Placement/fil9_bigram'
+  filename = os.path.join(os.path.abspath(os.getcwd()), "text8")
+  out_filename = os.path.join(os.path.abspath(os.getcwd()), 'fil9_bigram')
   sentences_to_bi_grams(phraser, filename, out_filename) 
 

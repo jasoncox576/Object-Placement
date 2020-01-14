@@ -1,6 +1,7 @@
-from word2vec_basic import *
+from word2vec_scratch import *
 from word2vec_eval import *
 from object_placement_turk import *
+import os
 
 def train_original_model(filename, save_dir, load_dir=None, load=False):
     return word2vec_turk(save_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=False, load=load)
@@ -140,7 +141,7 @@ def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_
 			return train_on_turk_exclusively(X, y, dictionaries, filename, cosine=False, save_dir=directory, bigram_split=False, load_dir = temp_load_dir, load=True)
 
 if __name__=="__main__":
-	filename = '/home/justin/Data/fil9_bigram'
+	filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
 	#filename = 'text8'
 	#filename = 'modified_text'
 	turk_filename = "final_cleaned_results.csv"
