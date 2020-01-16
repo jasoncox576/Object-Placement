@@ -185,6 +185,16 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
+def w2v_loss(inputs, labels, skip_window=10):
+    context_words = 2*skip_window+1
+    #error = tf.math.square((tf.reduce_sum([tf.math.subtract(labels, inputs)][0], [0, 1])))
+    #l1 = tf.scalar_mul(-1, tf.math.reduce_sum(labels[0]))
+    #l2 = tf.math.scalar_mul(context_words, tf.math.log(tf.reduce_sum(tf.exp(labels[0]))))
+    #loss = tf.reduce_sum(labels[0], axis=1)
+    #loss = tf.add(tf.math.scalar_mul(-1, tf.math.reduce_sum(labels[0])), tf.math.scalar_mul(context_words, tf.math.log(tf.reduce_sum(tf.exp(labels[0]))))) 
+    loss = tf.reduce_sum(tf.math.subtract(labels, inputs)[0], axis=0)
+    return loss 
+
 
 def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5):
 
@@ -236,8 +246,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     # Input data.
     with tf.compat.v1.name_scope('inputs'):
       #train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[1,2])
-      train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[vocabulary_size, 1])
-      train_labels = tf.compat.v1.placeholder(tf.int32, shape=[vocabulary_size, 1])
+      train_inputs = tf.compat.v1.placeholder(tf.float32, shape=[1, vocabulary_size])
+      train_labels = tf.compat.v1.placeholder(tf.float32, shape=[1, vocabulary_size])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
     #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
@@ -253,10 +263,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         # represents first matrix multiplication: Result of this is the selected word embeddings
         # with all else as zero.
-        embed = tf.matmul(tf.transpose(train_inputs), embeddings)
+        embed = tf.matmul(train_inputs, embeddings)
 
-
-        
 
 
       # Construct the variables for the NCE loss
@@ -268,17 +276,25 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
       with tf.compat.v1.name_scope('biases'):
         nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
       
+    #output_layer = tf.nn.softmax(tf.matmul(embed, tf.transpose(nce_weights)))
 
-    # Compute the average NCE loss for the batch.
+     # Compute the average NCE loss for the batch.
     with tf.compat.v1.name_scope('loss'):
+      output_layer = tf.matmul(embed, tf.transpose(nce_weights))
+      print("PRINTINGN SHAPPEEEE")
+      print(tf.size(nce_weights))
+      loss = w2v_loss(output_layer, train_labels) 
+      """
       loss = tf.reduce_mean(
           input_tensor=tf.nn.nce_loss(
               weights=nce_weights,
               biases=nce_biases,
               labels=train_labels,
-              inputs=m1,
+              inputs=embed,
               num_sampled=num_sampled,
               num_classes=vocabulary_size))
+      """
+    tf.compat.v1.summary.scalar('loss', loss)
 
     # Construct the SGD optimizer using a learning rate of 1.0.
     with tf.compat.v1.name_scope('optimizer'):
@@ -322,7 +338,57 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     batch_inputs = np.array([], dtype=int)
     #batch_labels = np.zeros([batch_size, 1])
     batch_labels = np.array([], dtype=int)
+
     
+    # training regular wikipedia model
+    for step in xrange(num_steps):
+      if not retraining:
+          batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+          modded_batch_inputs, modded_batch_labels = split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary)
+          print(modded_batch_labels[:100])
+          for ind in range(batch_size):
+              input_word = modded_batch_inputs[ind]
+              output_word = modded_batch_labels[ind]
+              
+              #one-hot used as input (two-hot if input is a bigram)
+              input_vector = np.zeros([1, vocabulary_size])
+
+              #marking first (and second word, if it exists) of bigram pair.
+              input_vector[0][input_word[0]] = 1
+              if input_word[1]:
+                  input_vector[0][input_word[1]] = 1
+              
+
+              #marking output one-hot with the correct values so as to train off of it.
+              output_vector = np.zeros([1, vocabulary_size])
+              output_vector[0][output_word] = 1
+              """
+              output_vector[0][output_word[0]] = 1
+              #if bigram, mark second word as well.
+              if output_word[1]:
+                  output_vector[0][output_word[1]] = 1
+              """
+
+              feed_dict = {train_inputs: input_vector, train_labels: output_vector}
+              merged = tf.compat.v1.summary.merge_all()
+              run_metadata = tf.compat.v1.RunMetadata()
+              _, _, loss_val = session.run([optimizer, merged, loss],
+                                                     feed_dict=feed_dict,
+                                                     run_metadata=run_metadata)
+              average_loss += loss_val
+
+              if step % 100 == 0:
+                  if step > 0:
+                      average_loss /= 100
+                  print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+                  average_loss = 0
+
+
+
+
+
+    
+    """
     if not joint_training:
         
         if retraining:
@@ -444,6 +510,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
         
 
+      """
 
 
       # Save the model for checkpoints.
