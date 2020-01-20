@@ -137,14 +137,19 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
     return modded_batch_inputs, modded_batch_labels
     
 
-def gen_io_vector(bigram_pair, vocabulary_size):
+def gen_io_vector(bigram_pair, vocabulary_size, output):
     #one-hot used as input (two-hot if input is a bigram)
     vec =  np.zeros([1, vocabulary_size])
 
-    #marking first (and second word, if it exists) of bigram pair.
-    vec[0][bigram_pair[0]] = 1
     if bigram_pair[1]:
-        vec[0][bigram_pair[1]] = 1
+        fill_val = 1
+        if output:
+            fill_val = 0.5
+        vec[0][bigram_pair[0]] = fill_val
+        vec[0][bigram_pair[1]] = fill_val
+            
+    else:
+        vec[0][bigram_pair[0]] = 1
     return vec[0]
     
 
@@ -192,7 +197,7 @@ def w2v_loss(inputs, labels, skip_window=10):
     
     #loss = tf.scalar_mul(-1, tf.math.reduce_sum(labels))
 
-    loss = tf.math.square(tf.reduce_sum(tf.math.subtract(labels, inputs)))
+    loss = tf.reduce_sum(tf.math.abs(tf.math.subtract(labels, inputs)))
     return loss 
 
 
@@ -226,7 +231,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
   print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
   #batch_size=8500
-  batch_size=100
+  batch_size=60
   embedding_size = 128  # Dimension of the embedding vector.
   skip_window = 10# How many words to consider left and right.
   num_skips = 20# How many times to reuse an input to generate a label.
@@ -248,6 +253,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     with tf.compat.v1.name_scope('inputs'):
       #train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[1,2])
       train_inputs = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, vocabulary_size])
+      #train_labels = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, vocabulary_size])
       train_labels = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, vocabulary_size])
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
@@ -277,12 +283,13 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
       with tf.compat.v1.name_scope('biases'):
         nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
       
-    output_layer = tf.nn.softmax(tf.matmul(embed, tf.transpose(nce_weights)))
+    #output_layer = tf.nn.softmax(tf.matmul(embed, tf.transpose(nce_weights)))
 
      # Compute the average NCE loss for the batch.
     with tf.compat.v1.name_scope('loss'):
-      #output_layer = tf.matmul(embed, tf.transpose(nce_weights))
-      loss = w2v_loss(output_layer, train_labels) 
+      output_layer = tf.matmul(embed, tf.transpose(nce_weights))
+      loss = tf.math.reduce_mean(w2v_loss(output_layer, train_labels)) 
+      #loss = tf.math.reduce_mean(tf.squeeze(tf.nn.softmax_cross_entropy_with_logits(output_layer, train_labels[0])))
       """
       loss = tf.reduce_mean(
           input_tensor=tf.nn.nce_loss(
@@ -352,8 +359,19 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
           for ind in range(batch_size):
               input_word = modded_batch_inputs[ind]
               output_word = modded_batch_labels[ind]
-              input_vectors.append(gen_io_vector(input_word, vocabulary_size)) 
-              output_vectors.append(gen_io_vector(output_word, vocabulary_size))
+
+              input_vectors.append(gen_io_vector(input_word, vocabulary_size, output=False)) 
+
+              """
+              # if bigram in input
+              if input_word[1]:
+                  input_vector = tf.sparse.SparseTensor(indices=[[0, input_word[0]], [0, input_word[1]]], values=[1,1], dense_shape=[1, vocabulary_size])
+              else:
+                  input_vector = tf.sparse.SparseTensor(indices=[0, input_word[0]], values=[1], dense_shape=[1, vocabulary_size])
+              """
+
+
+              output_vectors.append(gen_io_vector(output_word, vocabulary_size,output=True))
         
             
 
