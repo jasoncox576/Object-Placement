@@ -50,11 +50,12 @@ def eval_random(X, y, test):
 
 def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
     
-    if bigram_split and '_' in in_word:
+    if '_' in in_word:
         w1, w2 = in_word.split("_")
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
         index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
 
+        """
         embed1 = embeddings[index1]
         embed2 = embeddings[index2]
 
@@ -63,6 +64,9 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
 
         embeds = (embed1, embed2)
         n_embeds = (n_embed1, n_embed2)
+        """
+        io_vector = gen_io_vector([index1, index2], vocab_size=200000)
+        embed = tf.matmul(io_vector, embeddings)
 
         indices = (index1, index2)
 
@@ -70,36 +74,38 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
         n_embed = embed/ np.linalg.norm(embed)
-        embeds = (embed, None) 
         n_embeds = (n_embed, None)
         indices = (index, None)
-    return indices, embeds, n_embeds
+    n_embed = embed / np.linalg.norm(embed)
+    return indices, embed, n_embed
         
     
 
 def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
     #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
-    if bigram_split and '_' in in_word:
+    if '_' in in_word:
         w1, w2 = in_word.split("_")
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
         index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
     
-        embed = (embeddings[index1] + embeddings[index2])/2
-        n_embed = embed/np.linalg.norm(embed) 
-
+        #embed = (embeddings[index1] + embeddings[index2])/2
+        #n_embed = embed/np.linalg.norm(embed) 
+        io_vector = gen_io_vector([index1, index2], vocab_size=200000)
+        embed = tf.matmul(io_vector, embeddings)
         indices = (index1,index2)
     else:
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
-        n_embed = embed/ np.linalg.norm(embed)
         indices = (index, None)
+
+    n_embed = embed/ np.linalg.norm(embed)
     return indices, embed, n_embed
 
 
 
 
 
-def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
+def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False, discard_instances=False):
     out_file = open(outfile_name, 'w') 
     hist_file = open("choices_res.csv", 'a')
 
@@ -107,6 +113,9 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
     first_choice = 0
     second_choice = 0
     third_choice = 0
+
+    return_x = []
+    return_y = []
 
     for case in range(len(X)):
         p = X[case][0]          #primary
@@ -141,8 +150,8 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
                     embedding_sim_vector.append(np.mean([sim1,sim2]))
             
         else:
-            for embeds in nembeddings: 
-                embedding_sim_vector.append(np.dot(p_nembedding, embeds[0]))
+            for embed in nembeddings: 
+                embedding_sim_vector.append(np.dot(p_nembedding, embed))
         print("SIM SCORE: ", max(embedding_sim_vector), p, X[case][np.argmax(embedding_sim_vector)+1], embedding_sim_vector)
 
         answer_index = X[case][1:].index(y[case])
@@ -170,13 +179,20 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct += 1
+        else:
+            if discard_instances:
+                return_x.append(X[case])
+                return_y.append(y[case])
 
     res = ("first choice: " + str(first_choice) + " second choice: " + str(second_choice) + " third choice: " + str(third_choice) + "\n")
     hist_file.write(res)  
     hist_file.close() 
     out_file.write(res) 
 
-    return total_correct/len(X)
+    if discard_instances:
+        return return_x, return_y
+    else:
+        return total_correct/len(X)
 
 
 
