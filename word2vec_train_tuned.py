@@ -215,6 +215,7 @@ if __name__=="__main__":
         load=True
         n_equals = 0
         while True:
+            weights_generated=False
             if new_acc <= old_acc:
                 n_equals += 1
                 if n_equals > 1:
@@ -222,10 +223,13 @@ if __name__=="__main__":
             else:
                 n_equals = 0
             old_acc = new_acc
-            embeddings = get_embeddings(current_model, filename, bigram_dictionaries)
+            if weights_generated:
+                embeddings = get_embeddings(current_model, filename, bigram_dictionaries)
 
             filtered_x, filtered_y = evaluate_word2vec_cosine(train_x[num][0], train_y[num][0], embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False, discard_instances=True)
             embeddings, weights = train_by_name(filtered_x, filtered_y, bigram_dictionaries, filename, str(num+1), current_model, load)
+            weights_generated = True
+
             new_acc = evaluate_word2vec_cosine(validate_x[num], validate_y[num], embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False)
 
 

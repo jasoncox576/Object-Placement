@@ -141,6 +141,8 @@ def gen_io_vector(bigram_pair, vocabulary_size):
     #one-hot used as input (two-hot if input is a bigram)
     vec = np.zeros([1, vocabulary_size])
 
+    vec = tf.SparseTensor(indices=[1,bigram_pair], values=[1], dense_shape=[1, vocabulary_size])
+
 
     """
     if bigram_pair[1]:
@@ -151,8 +153,9 @@ def gen_io_vector(bigram_pair, vocabulary_size):
             
     else:
     """
-    vec[0][bigram_pair] = 1
-    return vec[0]
+    #vec[0][bigram_pair] = 1
+    #return vec[0]
+    return vec
     
 
 
@@ -223,12 +226,6 @@ def get_embeddings(vec):
     embed = tf.matmul(vec, embeddings)
     return embed
 
-def test_cosine_eval(input_vec, other_object_vectors, label_vector):
-    if other_object_vectors[np.argmax([np.dot(input_vec, x) for x in other_object_vectors])] == label_vector:
-        return true
-    else:
-        return false
-
 
 
 def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5):
@@ -281,8 +278,10 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     # Input data.
     with tf.compat.v1.name_scope('inputs'):
-      train_inputs = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, vocabulary_size])
-      train_labels = tf.compat.v1.placeholder(tf.float32, shape=[vocabulary_size, batch_size])
+      #train_inputs = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, vocabulary_size])
+      #train_labels = tf.compat.v1.placeholder(tf.float32, shape=[vocabulary_size, batch_size])
+      train_inputs = tf.compat.v1.sparse_placeholder(tf.float32)
+      train_labels = tf.compat.v1.sparse_placeholder(tf.float32)
     
       cosine_input = tf.compat.v1.placeholder(tf.float32, shape=[1, vocabulary_size])
       cosine_label = tf.compat.v1.placeholder(tf.float32, shape=[vocabulary_size, 1])
@@ -304,7 +303,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         # represents first matrix multiplication: Result of this is the selected word embeddings
         # with all else as zero.
-        embed = tf.matmul(train_inputs, embeddings)
+        #embed = tf.matmul(train_inputs, embeddings)
+        embed = tf.sparse_tensor_dense_matmul(train_inputs, embeddings)
+
 
 
 
@@ -421,7 +422,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
           input_vectors = np.asarray(input_vectors, dtype=int)
           output_vectors = np.transpose(np.asarray(output_vectors, dtype=int))
 
-          feed_dict = {train_inputs: input_vectors, train_labels: output_vectors}
+          feed_dict = {train_inputs: input_vectors[0], train_labels: output_vectors[0]}
           merged = tf.compat.v1.summary.merge_all()
           run_metadata = tf.compat.v1.RunMetadata()
           _, _, loss_val = session.run([optimizer, merged, loss],
@@ -443,7 +444,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
           #cosine loop
           input_vectors = []
-          shelf_object_vectors = []
           output_vectors = []
 
           inputs, labels = process_inputs(X, y) 
@@ -455,11 +455,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               output_word = labels[ind]
 
               input_vectors.append(gen_io_vector(input_word, vocabulary_size)) 
-
-              current_instance_objects = []
-              for obj in X[ind][1:]:
-                  current_instance_objects.append(gen_io_vector(obj, vocabulary_size)) 
-              shelf_object_vectors.append(current_instance_objects)
 
               output_vectors.append(gen_io_vector(output_word, vocabulary_size, output=True))
           
@@ -473,27 +468,21 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
               other_object_vectors = [get_embeddings(shelf_object_vectors[instance][x] for x in shelf_object_vectors[instance])]
 
-              if test_cosine_eval(input_vector, other_object_vectors, label_vector):
-                  del input_vectors[instance]
-                  del shelf_object_vectors[instance]
-                  del output_vectors[instance]
-                  break
-              else:
 
-                  feed_dict = {train_inputs: input_vector, train_labels: label_vector}
-                  merged = tf.compat.v1.summary.merge_all()
-                  run_metadata = tf.compat.v1.RunMetadata()
-                  cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(input_vector, axis=1), tf.math.l2_normalize(label_vector, axis=1), axis=1))
-                  _, _, loss_val = session.run([optimizer, merged, cosine_loss],
-                                                         feed_dict=feed_dict,
-                                                             run_metadata=run_metadata)
-                  average_loss += loss_val
-                  if step % 100 == 0:
-                    if step > 0:
-                        average_loss /= 100
-                        print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-                        average_loss = 0
-                    step += 1
+              feed_dict = {train_inputs: input_vector, train_labels: label_vector}
+              merged = tf.compat.v1.summary.merge_all()
+              run_metadata = tf.compat.v1.RunMetadata()
+              cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(input_vector, axis=1), tf.math.l2_normalize(label_vector, axis=1), axis=1))
+              _, _, loss_val = session.run([optimizer, merged, cosine_loss],
+                                                     feed_dict=feed_dict,
+                                                         run_metadata=run_metadata)
+              average_loss += loss_val
+              if step % 100 == 0:
+                if step > 0:
+                    average_loss /= 100
+                    print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+                    average_loss = 0
+                step += 1
                       
 
 
