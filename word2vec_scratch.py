@@ -137,11 +137,15 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
     return modded_batch_inputs, modded_batch_labels
     
 
-def gen_io_vector(bigram_pair, vocabulary_size):
+def gen_io_vector(input_pairs,label_pairs,vocabulary_size, batch_size):
     #one-hot used as input (two-hot if input is a bigram)
-    vec = np.zeros([1, vocabulary_size])
+    #vec = np.zeros([1, vocabulary_size])
 
-    vec = tf.SparseTensor(indices=[1,bigram_pair], values=[1], dense_shape=[1, vocabulary_size])
+    #vec = tf.SparseTensor(indices=[bigram_pair, 1], values=[1], dense_shape=[vocabulary_size, 1])
+    value_vec = [1 for x in range(len(input_pairs))]
+    input_mat = tf.compat.v1.SparseTensorValue(indices=input_pairs, values=value_vec, dense_shape=[batch_size, vocabulary_size])
+
+    label_mat = tf.compat.v1.SparseTensorValue(indices=label_pairs, values=value_vec, dense_shape=[vocabulary_size, batch_size])
 
 
     """
@@ -155,7 +159,7 @@ def gen_io_vector(bigram_pair, vocabulary_size):
     """
     #vec[0][bigram_pair] = 1
     #return vec[0]
-    return vec
+    return input_mat, label_mat
     
 
 
@@ -193,26 +197,20 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
+@tf.function
 def w2v_loss(output_matrix, labels, skip_window=10, batch_size=60):
     #context_words = 2*skip_window+1
     
     output_unpacked = tf.unstack(output_matrix)
-    labels_unpacked = tf.unstack(labels, axis=1)
+    #labels_unpacked = tf.unstack(labels, axis=1)
+    labels_unpacked = labels.indices
 
     loss_scalars = []
+    loss_scalars.append(tf.gather_nd(output_matrix, indices=labels_unpacked))
 
-    for index in range(batch_size):
-        output_vec = output_unpacked[index] 
-        label_vec = labels_unpacked[index]
-        #loss_scalars.append(output_vec[labels_unpacked[index][0]])
-        loss_scalars.append(tf.tensordot(output_vec, label_vec, 1)) 
-        #loss_scalars.append(tf.gather(params=output_vec[0], indices=[1]))
-        #if labels_unpacked[index][1]:
-            #loss_scalars.append(output_vec[labels[index][1]])
         
-    #loss = tf.reduce_sum(-tf.math.log(loss_scalars))
-    #loss = -tf.math.log(tf.reduce_sum(loss_scalars))
-    loss = tf.reduce_sum(loss_scalars)
+    loss_scalars = tf.add(1e-9, loss_scalars)
+    loss = tf.reduce_sum(-tf.math.log(loss_scalars))
     return loss
 
 
@@ -257,8 +255,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
   print('Most common words (+UNK)', count[:5])
   print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
-  #batch_size=8500
-  batch_size=60
+  batch_size=120
   embedding_size = 128  # Dimension of the embedding vector.
   skip_window = 10# How many words to consider left and right.
   num_skips = 20# How many times to reuse an input to generate a label.
@@ -304,7 +301,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         # represents first matrix multiplication: Result of this is the selected word embeddings
         # with all else as zero.
         #embed = tf.matmul(train_inputs, embeddings)
-        embed = tf.sparse_tensor_dense_matmul(train_inputs, embeddings)
+        embed = tf.sparse.sparse_dense_matmul(train_inputs, embeddings)
 
 
 
@@ -318,7 +315,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
       with tf.compat.v1.name_scope('biases'):
         nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
       
-    output_layer = tf.nn.softmax(tf.matmul(embed, tf.transpose(nce_weights)))
+    output_layer = tf.reshape(tf.nn.softmax(tf.matmul(embed, tf.transpose(nce_weights))), [batch_size, vocabulary_size])
 
      # Compute the average NCE loss for the batch.
     with tf.compat.v1.name_scope('loss'):
@@ -388,41 +385,17 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
           batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
           #modded_batch_inputs, modded_batch_labels = split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary)
 
-
-          input_vectors = []
-          output_vectors = []
+          input_indices = []
+          label_indices = []
 
           for ind in range(batch_size):
-              #input_word = modded_batch_inputs[ind]
-              #output_word = modded_batch_labels[ind]
+              input_indices.append([ind, batch_inputs[ind]])
+              label_indices.append([ind, batch_labels[ind]])
 
-              input_word = batch_inputs[ind]
-              output_word = batch_labels[ind]
+          #generate input sparse matrices
+          input_mat, label_mat = gen_io_vector(input_indices, label_indices, vocabulary_size, batch_size)
 
-              input_vectors.append(gen_io_vector(input_word, vocabulary_size)) 
-
-
-              """
-              # if bigram in input
-              if input_word[1]:
-                  input_vector = tf.sparse.SparseTensor(indices=[[0, input_word[0]], [0, input_word[1]]], values=[1,1], dense_shape=[1, vocabulary_size])
-              else:
-                  input_vector = tf.sparse.SparseTensor(indices=[0, input_word[0]], values=[1], dense_shape=[1, vocabulary_size])
-              """
-
-
-              #output_vectors.append(gen_io_vector(output_word, vocabulary_size,output=True))
-              #if output_word[1]:
-              #    output_vectors.append([output_word[0], output_word[1]])
-              #else:
-              output_vectors.append(gen_io_vector(output_word, vocabulary_size))
-        
-            
-
-          input_vectors = np.asarray(input_vectors, dtype=int)
-          output_vectors = np.transpose(np.asarray(output_vectors, dtype=int))
-
-          feed_dict = {train_inputs: input_vectors[0], train_labels: output_vectors[0]}
+          feed_dict = {train_inputs: input_mat, train_labels: label_mat}
           merged = tf.compat.v1.summary.merge_all()
           run_metadata = tf.compat.v1.RunMetadata()
           _, _, loss_val = session.run([optimizer, merged, loss],
@@ -435,14 +408,17 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                 average_loss /= 100
                 print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
                 average_loss = 0
+            if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
             step += 1
+
 
 
 
 
       if retraining:
 
-          #cosine loop
+          #COSINE LOOP
+          #==========================
           input_vectors = []
           output_vectors = []
 
@@ -485,19 +461,25 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                 step += 1
                       
 
+          #WIKIPEDIA LOOP
+          #==========================
+          batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+          #modded_batch_inputs, modded_batch_labels = split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary)
 
+          input_indices = []
+          label_indices = []
 
+          for ind in range(batch_size):
+              input_indices.append([ind, batch_inputs[ind]])
+              label_indices.append([ind, batch_labels[ind]])
 
-          feed_dict = {train_inputs: input_vectors, train_labels: output_vectors}
+          #generate input sparse matrices
+          input_mat, label_mat = gen_io_vector(input_indices, label_indices, vocabulary_size, batch_size)
+
+          feed_dict = {train_inputs: input_mat, train_labels: label_mat}
           merged = tf.compat.v1.summary.merge_all()
           run_metadata = tf.compat.v1.RunMetadata()
-          input_embeds = get_embeddings(train_inputs)
-          label_embeds = get_embeddings(train_labels)
-
-
-
-          cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(input_embeds, axis=1), tf.math.l2_normalize(label_embeds, axis=1), axis=1))
-          _, _, loss_val = session.run([optimizer, merged, cosine_loss],
+          _, _, loss_val = session.run([optimizer, merged, loss],
                                                  feed_dict=feed_dict,
                                                      run_metadata=run_metadata)
           average_loss += loss_val
@@ -507,8 +489,11 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                 average_loss /= 100
                 print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
                 average_loss = 0
+            if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
             step += 1
-           
+
+
+
 
 
 

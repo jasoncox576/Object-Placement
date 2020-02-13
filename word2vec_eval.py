@@ -3,7 +3,7 @@ import csv
 #from nltk.corpus import wordnet as wn
 #from sklearn.model_selection import StratifiedKFold
 from object_placement_turk import *
-#from word2vec_basic import *
+from word2vec_scratch import *
 from word2vec_train_tuned import *
 import numpy as np
 import matrix_priors

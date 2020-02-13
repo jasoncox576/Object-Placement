@@ -142,10 +142,9 @@ def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_
 
 if __name__=="__main__":
     filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
-    #filename = 'text8'
-    #filename = 'modified_text'
     turk_filename = "final_cleaned_results.csv"
 
+    start_with_wiki=False
 
 
     train_x = []
@@ -155,8 +154,6 @@ if __name__=="__main__":
     optimals = []
     for num in range(3):
         train1 = read_csv_train_test("data/"+str(num+1)+"_train.csv")
-        print(len(train1[0]))
-        print(len(train1[1]))
         validate_x.append([])
         validate_y.append([])
         train_x.append([])
@@ -171,27 +168,12 @@ if __name__=="__main__":
         train_y[num].append(train1[1])
 
     print("==========================================================")
-    print(len(train_x))
-    print(len(train_x[0]))
-    print(len(train_x[0][0]))
-    print(len(train_x[0][0][0]))
-    print(train_x[0][0])
-
-    print(len(validate_x[0][0][0]))
-    print((validate_x[0][0][0]))
 
     bigram_dictionaries = get_pretrain_dictionaries(filename)
     bigram_unused_dictionary = bigram_dictionaries[2]
 
     #models = ['wiki_cosine', 'wiki_output', 'bigram_wiki_cosine', 'bigram_wiki_output', 'wiki+turk_cosine', 'wiki+turk_output', 'wiki+turk_bigram_cosine', 'wiki+turk_bigram_output', 'turk_cosine', 'turk_output', 'turk_bigram_cosine',  'turk_bigram_output', 'turk+wiki_cosine', 'turk+wiki_output', 'turk_wiki_bigram_cosine', 'turk+wiki_bigram_output', 'turk+wiki+turk_cosine', 'turk+wiki+turk_output', 'turk+wiki+turk_bigram_cosine', 'turk+wiki+turk_bigram_output']
     models = ['wiki_output', 'wiki+turk_cosine']
-    """
-    for i in range(1,10):
-        models.append('joint_.'+str(i) + '_cosine')
-        models.append('joint_.'+str(i) + '_output')
-        models.append('joint_.'+str(i) + '_bigram_cosine')
-        models.append('joint_.'+str(i) + '_bigram_output')
-    """
 
 
     """
@@ -203,7 +185,10 @@ if __name__=="__main__":
     -alternate between w2v and cosine.
     """
 
-    embeddings, weights = train_by_name(None, None, bigram_dictionaries, filename, str(num+1), "wiki_output", load=False)
+    if start_with_wiki:
+        embeddings, weights = train_by_name(None, None, bigram_dictionaries, filename, "1", "wiki_output", load=False)
+    else:
+        embeddings, weights = get_embeddings("1_wiki_output", filename, bigram_dictionaries) 
 
     current_model = models[1]
 
