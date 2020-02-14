@@ -28,7 +28,7 @@ import sys
 from tempfile import gettempdir
 import zipfile
 
-import word2vec_eval
+#import word2vec_eval
 import util
 
 import numpy as np
@@ -137,7 +137,7 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
     return modded_batch_inputs, modded_batch_labels
     
 
-def gen_io_vector(input_pairs,label_pairs,vocabulary_size, batch_size):
+def gen_io_mats(input_pairs,label_pairs,vocabulary_size, batch_size):
     #one-hot used as input (two-hot if input is a bigram)
     #vec = np.zeros([1, vocabulary_size])
 
@@ -393,7 +393,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               label_indices.append([ind, batch_labels[ind]])
 
           #generate input sparse matrices
-          input_mat, label_mat = gen_io_vector(input_indices, label_indices, vocabulary_size, batch_size)
+          input_mat, label_mat = gen_io_mats(input_indices, label_indices, vocabulary_size, batch_size)
 
           feed_dict = {train_inputs: input_mat, train_labels: label_mat}
           merged = tf.compat.v1.summary.merge_all()

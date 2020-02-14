@@ -144,7 +144,7 @@ if __name__=="__main__":
     filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
     turk_filename = "final_cleaned_results.csv"
 
-    start_with_wiki=False
+    train_wiki=False
 
 
     train_x = []
@@ -185,7 +185,7 @@ if __name__=="__main__":
     -alternate between w2v and cosine.
     """
 
-    if start_with_wiki:
+    if train_wiki:
         embeddings, weights = train_by_name(None, None, bigram_dictionaries, filename, "1", "wiki_output", load=False)
     else:
         embeddings, weights = get_embeddings("1_wiki_output", filename, bigram_dictionaries) 
