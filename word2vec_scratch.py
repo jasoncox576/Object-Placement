@@ -41,6 +41,7 @@ from gensim.models.phrases import Phrases, Phraser
 from spacy.lang.en.stop_words import STOP_WORDS
 import re
 
+tf.compat.v1.enable_eager_execution()
 
 
 data_index = 0
@@ -163,6 +164,33 @@ def gen_io_mats(input_pairs,label_pairs,vocabulary_size, batch_size):
     
 
 
+def gen_io_vector(input_pair, vocabulary_size=200000):
+
+    vec = np.zeros(vocabulary_size)
+
+    """
+    if input_pair[1]:
+        # Norm of the vector must be 1, so we use 1/sqrt(2) for two elements
+        fill_val = 1/np.sqrt(2)
+        try:
+            vec[input_pair[0]] = fill_val
+        except:
+            print("HERE's THE PAIR::::")
+            print(input_pair)
+        vec[input_pair[1]] = fill_val
+    """
+            
+    #else:
+    vec[input_pair] = 1
+        
+
+
+
+    vec = vec.astype(np.float32)
+
+    return vec
+
+
 
 
 
@@ -211,17 +239,27 @@ def w2v_loss(output_matrix, labels, skip_window=10, batch_size=60):
         
     loss_scalars = tf.add(1e-9, loss_scalars)
     loss = tf.reduce_sum(-tf.math.log(loss_scalars))
-    return loss
-
-
-        
 
     #loss = tf.reduce_sum(tf.math.abs(tf.math.subtract(labels, inputs)))
     return loss 
 
+@tf.function
+def compute_cosine_loss(input_embed, label_embed):
+    #dense_input = tf.sparse.to_dense(input_embed)
+    #dense_label = tf.sparse.to_dense(label_embed) 
+    #cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(dense_input, axis=1), tf.math.l2_normalize(dense_label, axis=1), axis=1))
+    cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(input_embed, axis=1), tf.math.l2_normalize(label_embed, axis=1), axis=1))
+    return cosine_loss 
 
-def get_embeddings(vec):
+
+
+
+@tf.function
+def get_embedding_vec(vec, embeddings):
+    vec = tf.convert_to_tensor(vec, dtype=tf.float32)
+    vec = tf.reshape(vec, [1,200000])
     embed = tf.matmul(vec, embeddings)
+    print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
     return embed
 
 
@@ -277,14 +315,10 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     with tf.compat.v1.name_scope('inputs'):
       #train_inputs = tf.compat.v1.placeholder(tf.float32, shape=[batch_size, vocabulary_size])
       #train_labels = tf.compat.v1.placeholder(tf.float32, shape=[vocabulary_size, batch_size])
+
       train_inputs = tf.compat.v1.sparse_placeholder(tf.float32)
       train_labels = tf.compat.v1.sparse_placeholder(tf.float32)
     
-      cosine_input = tf.compat.v1.placeholder(tf.float32, shape=[1, vocabulary_size])
-      cosine_label = tf.compat.v1.placeholder(tf.float32, shape=[vocabulary_size, 1])
-    
-
-
       valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
     #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
@@ -301,6 +335,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         # represents first matrix multiplication: Result of this is the selected word embeddings
         # with all else as zero.
         #embed = tf.matmul(train_inputs, embeddings)
+
         embed = tf.sparse.sparse_dense_matmul(train_inputs, embeddings)
 
 
@@ -317,22 +352,18 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
       
     output_layer = tf.reshape(tf.nn.softmax(tf.matmul(embed, tf.transpose(nce_weights))), [batch_size, vocabulary_size])
 
+    ## The dimension of 'train_inputs' and 'train_labels' for cosine training should just be [1,vocab_size] 
+    ## Nothing bigger.
+    cosine_input_embed = tf.sparse.sparse_dense_matmul(train_inputs, embeddings)
+    cosine_label_embed = tf.sparse.sparse_dense_matmul(train_labels, embeddings)
+
      # Compute the average NCE loss for the batch.
     with tf.compat.v1.name_scope('loss'):
       #output_layer = tf.matmul(embed, tf.transpose(nce_weights))
       #loss = tf.math.reduce_sum(w2v_loss(output_layer, train_labels)) 
       loss = w2v_loss(output_layer, train_labels)
+      cosine_loss = compute_cosine_loss(cosine_input_embed, cosine_label_embed)
       #loss = tf.math.reduce_mean(tf.squeeze(tf.nn.softmax_cross_entropy_with_logits(output_layer, train_labels[0])))
-      """
-      loss = tf.reduce_mean(
-          input_tensor=tf.nn.nce_loss(
-              weights=nce_weights,
-              biases=nce_biases,
-              labels=train_labels,
-              inputs=embed,
-              num_sampled=num_sampled,
-              num_classes=vocabulary_size))
-      """
     tf.compat.v1.summary.scalar('loss', loss)
 
     # Construct the SGD optimizer using a learning rate of 1.0.
@@ -427,28 +458,21 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               #input_word = modded_batch_inputs[ind]
               #output_word = modded_batch_labels[ind]
 
-              input_word = inputs[ind]
-              output_word = labels[ind]
+              input_ind = unused_dictionary[inputs[ind]]
+              output_ind = unused_dictionary[labels[ind]]
 
-              input_vectors.append(gen_io_vector(input_word, vocabulary_size)) 
+              #input_vector = get_embedding_vec(gen_io_vector(input_ind, vocabulary_size), embeddings) 
+              #label_vector = get_embedding_vec(gen_io_vector(output_ind, vocabulary_size), embeddings)
+              
+              input_vector = gen_io_vector(input_ind, vocabulary_size).reshape((1,vocabulary_size))
+              label_vector = gen_io_vector(output_ind, vocabulary_size).reshape((1,vocabulary_size))
 
-              output_vectors.append(gen_io_vector(output_word, vocabulary_size, output=True))
-          
-
-
-          for instance in range(len(input_vectors)):
-
-              input_vector = get_embeddings(input_vectors[instance])
-
-              label_vector = get_embeddings(output_vectors[instance])
-
-              other_object_vectors = [get_embeddings(shelf_object_vectors[instance][x] for x in shelf_object_vectors[instance])]
+              #other_object_vectors = [get_embedding_vec((shelf_object_vectors[instance][x] for x in shelf_object_vectors[instance]), embeddings)]
 
 
               feed_dict = {train_inputs: input_vector, train_labels: label_vector}
               merged = tf.compat.v1.summary.merge_all()
               run_metadata = tf.compat.v1.RunMetadata()
-              cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(input_vector, axis=1), tf.math.l2_normalize(label_vector, axis=1), axis=1))
               _, _, loss_val = session.run([optimizer, merged, cosine_loss],
                                                      feed_dict=feed_dict,
                                                          run_metadata=run_metadata)
@@ -474,9 +498,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
               label_indices.append([ind, batch_labels[ind]])
 
           #generate input sparse matrices
-          input_mat, label_mat = gen_io_vector(input_indices, label_indices, vocabulary_size, batch_size)
+          input_mat, label_mat = gen_io_mats(input_indices, label_indices, vocabulary_size, batch_size)
 
-          feed_dict = {train_inputs: input_mat, train_labels: label_mat}
+          feed_dict = {cosine_input: input_mat, cosine_label: label_mat}
           merged = tf.compat.v1.summary.merge_all()
           run_metadata = tf.compat.v1.RunMetadata()
           _, _, loss_val = session.run([optimizer, merged, loss],
@@ -491,138 +515,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                 average_loss = 0
             if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
             step += 1
-
-
-
-
-
-
-
-
-    
-    """
-    if not joint_training:
-        
-        if retraining:
-          inputs, labels = process_inputs(X, y)
-          for i in range(len(inputs)):
-              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-              batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
-
-          batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
-
-          if cosine:
-            itemplaceholder = tf.compat.v1.placeholder(tf.int32, [1,2])
-            nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [1,2])
-            x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-            y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
-            
-
-            new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-            new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(new_loss)
-            session.run(tf.compat.v1.global_variables_initializer())
-
-        if (get_embeddings or load) and not load_early:
-            saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
-            print("MODEL RESTORED")
-            if get_embeddings:
-                return embeddings.eval(), nce_weights.eval()
-
-        for step in xrange(num_steps):
-          if not retraining:
-              batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-
-          # Deal with bigrams
-          if bigram_split:
-              modded_batch_inputs, modded_batch_labels = split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary)
-              feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
-              if cosine:
-                  feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : np.squeeze(modded_batch_labels)}
-                  #feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : modded_batch_labels}
-              else:
-                  feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
-          else:
-              if cosine:
-                  feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
-                  #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
-                
-              else:
-                  feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
-
-          if cosine:
-                  _, loss_val = session.run([new_optimizer, new_loss],
-                                                         feed_dict=feed_dict)
-          else:
-                  run_metadata = tf.compat.v1.RunMetadata()
-                  _, _, loss_val = session.run([optimizer, merged, loss],
-                                                         feed_dict=feed_dict,
-                                                         run_metadata=run_metadata)
-          average_loss += loss_val
-
-          if step % 100 == 0:
-              if step > 0:
-                  average_loss /= 100
-              print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-              average_loss = 0
-
-    if joint_training:
-        a = a
-        b = b
-        inputs, labels = process_inputs(X, y)
-        turk_batch_inputs = np.array([], dtype=int)
-        turk_batch_labels = np.array([], dtype=int)
-        for i in range(len(inputs)):
-            turk_batch_inputs = np.append(turk_batch_inputs, unused_dictionary.get(inputs[i]))
-            turk_batch_labels = np.append(turk_batch_labels, unused_dictionary.get(labels[i]))
-
-        turk_batch_labels = np.reshape(turk_batch_labels, (len(turk_batch_labels), 1))
-
-        if bigram_split:
-            itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None,2])
-            nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-            x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-            y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
-
-        else:
-            itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-            nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-            x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
-            y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
-
-        joint_loss = tf.add(tf.math.scalar_mul(a, loss), tf.math.scalar_mul(b, cosine_loss)) 
-        joint_optimizer = tf.compat.v1.train.GradientDescentOptimizer(5e-4).minimize(joint_loss)
-        session.run(tf.compat.v1.global_variables_initializer())
-
-        if bigram_split:
-            modded_turk_inputs, modded_turk_labels = split_bigrams(turk_batch_inputs, turk_batch_labels, unused_dictionary, reverse_dictionary)
-
-        if (get_embeddings or load) and not load_early:
-            saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
-            print("MODEL RESTORED")
-            if get_embeddings:
-                return embeddings.eval(), nce_weights.eval()
-
-        for step in xrange(num_steps):
-                sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-                if bigram_split:
-                    modded_sg_inputs, modded_sg_labels = split_bigrams(sg_batch_inputs, sg_batch_labels, unused_dictionary, reverse_dictionary) 
-                    feed_dict = {train_inputs: modded_sg_inputs, train_labels: modded_sg_labels, itemplaceholder: modded_turk_inputs, nexttoplaceholder: np.squeeze(modded_turk_labels)} 
-                else: feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
-
-
-                _, loss_val = session.run([joint_optimizer, joint_loss],
-                                                   feed_dict=feed_dict)
-
-                average_loss += loss_val
-                if step % 10 == 0:
-                    if step > 0:
-                        average_loss /= 10
-                    print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-                    average_loss = 0
-        
-
-      """
-
 
       # Save the model for checkpoints.
             

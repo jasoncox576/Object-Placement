@@ -2,7 +2,7 @@ import csv
 #import spacy
 #from nltk.corpus import wordnet as wn
 from object_placement_turk import *
-from word2vec_scratch import *
+from word2vec_basic import *
 from word2vec_train_tuned import *
 import numpy as np
 import matrix_priors
@@ -54,7 +54,6 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
         index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
 
-        """
         embed1 = embeddings[index1]
         embed2 = embeddings[index2]
 
@@ -63,20 +62,19 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
 
         embeds = (embed1, embed2)
         n_embeds = (n_embed1, n_embed2)
-        """
-        io_vector = gen_io_vector([index1, index2], vocab_size=200000)
-        embed = tf.matmul(io_vector, embeddings)
 
         indices = (index1, index2)
 
     else:
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
+        embeds = (embed, None)
         n_embed = embed/ np.linalg.norm(embed)
         n_embeds = (n_embed, None)
         indices = (index, None)
-    n_embed = embed / np.linalg.norm(embed)
-    return indices, embed, n_embed
+        
+    #n_embed = embed / np.linalg.norm(embed)
+    return indices, embeds, n_embeds
         
     
 
@@ -87,17 +85,17 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
         index2 = dictionary.get(matrix_priors.get_synset_and_strip(w2)[1])
     
-        #embed = (embeddings[index1] + embeddings[index2])/2
-        #n_embed = embed/np.linalg.norm(embed) 
-        io_vector = gen_io_vector([index1, index2], vocab_size=200000)
-        embed = tf.matmul(io_vector, embeddings)
+        embed = (embeddings[index1] + embeddings[index2])/2
+        n_embed = embed/np.linalg.norm(embed) 
+
         indices = (index1,index2)
     else:
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
+        n_embed = embed/np.linalg.norm(embed)
+
         indices = (index, None)
 
-    n_embed = embed/ np.linalg.norm(embed)
     return indices, embed, n_embed
 
 
@@ -150,8 +148,9 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
             
         else:
             for embed in nembeddings: 
-                embedding_sim_vector.append(np.dot(p_nembedding, embed))
-        print("SIM SCORE: ", max(embedding_sim_vector), p, X[case][np.argmax(embedding_sim_vector)+1], embedding_sim_vector)
+                embedding_sim_vector.append(np.dot(p_nembedding, embed[0]))
+        #FOR DEBUGGING PURPOSES
+        #print("SIM SCORE: ", max(embedding_sim_vector), p, X[case][np.argmax(embedding_sim_vector)+1], embedding_sim_vector)
 
         answer_index = X[case][1:].index(y[case])
         machine_answer_index = np.argmax(embedding_sim_vector)

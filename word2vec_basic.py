@@ -52,23 +52,23 @@ def process_inputs(X, y):
 
     for case in range(len(X)):
         set_inputs.append(X[case][0])
-        set_inputs[-1] = set_inputs[-1].replace(' ', '_') 
+        set_inputs[-1] = set_inputs[-1].replace(' ', '_')
         set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
 
         set_labels.append(y[case])
-        set_labels[-1] = set_labels[-1].replace(' ', '_') 
+        set_labels[-1] = set_labels[-1].replace(' ', '_')
         set_labels[-1] = re.sub('_\d', '', set_labels[-1])
     return set_inputs, set_labels
 
 def read_data(filename):
     """Extract the first file enclosed in a zip file as a list of words."""
     with zipfile.ZipFile(filename) as f:
-      data = tf.compat.as_str(f.read(f.namelist()[0])).split()
+        data = tf.compat.as_str(f.read(f.namelist()[0])).split()
     return data
 
 def read_data_nonzip(filename):
     with open(filename, 'r') as f:
-      data = f.read().split()
+        data = f.read().split()
     return data
 
 
@@ -78,14 +78,14 @@ def build_dataset(words, n_words):
     count.extend(collections.Counter(words).most_common(n_words - 1))
     dictionary = dict()
     for word, _ in count:
-      dictionary[word] = len(dictionary)
+        dictionary[word] = len(dictionary)
     data = list()
     unk_count = 0
     for word in words:
-      index = dictionary.get(word, 0)
-      if index == 0:  # dictionary['UNK']
-        unk_count += 1
-      data.append(index)
+        index = dictionary.get(word, 0)
+        if index == 0:  # dictionary['UNK']
+            unk_count += 1
+        data.append(index)
     count[0][1] = unk_count
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     return data, count, dictionary, reversed_dictionary
@@ -114,6 +114,7 @@ def bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary):
 def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary):
     modded_batch_inputs = []
     modded_batch_labels = []
+
     for i in range(len(batch_inputs)):
         w = reverse_dictionary[batch_inputs[i]]
         if '_' in w:
@@ -124,7 +125,7 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
             modded_batch_inputs.append((unused_dictionary[w1], unused_dictionary[w2]))
         except KeyError:
             modded_batch_inputs.append((unused_dictionary[w], unused_dictionary[w]))
-      
+
         label = reverse_dictionary[batch_labels[i][0]]
 
         if '_' in label:
@@ -145,7 +146,7 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
 
         else:
             modded_batch_labels.append(unused_dictionary[label])
-         
+
 
 
     modded_batch_inputs = np.array(modded_batch_inputs)
@@ -153,8 +154,8 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
     modded_batch_labels = np.reshape(modded_batch_labels, (len(modded_batch_labels), 1))
 
     return modded_batch_inputs, modded_batch_labels
-    
-    
+
+
 
 
 
@@ -162,325 +163,271 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
 
 # Step 3: Function to generate a training batch for the skip-gram model.
 def generate_batch(batch_size, num_skips, skip_window, data):
-  global data_index
-  assert batch_size % num_skips == 0
-  assert num_skips <= 2 * skip_window
-  batch = np.ndarray(shape=(batch_size), dtype=np.int32)
-  labels = np.ndarray(shape=(batch_size, 1), dtype=np.int32)
-  span = 2 * skip_window + 1  # [ skip_window target skip_window ]
-  buffer = collections.deque(maxlen=span)  # pylint: disable=redefined-builtin
-  if data_index + span > len(data):
-    data_index = 0
-  buffer.extend(data[data_index:data_index + span])
-  data_index += span
-  for i in range(batch_size // num_skips):
-    context_words = [w for w in range(span) if w != skip_window]
-    words_to_use = random.sample(context_words, num_skips)
-    for j, context_word in enumerate(words_to_use):
-      batch[i * num_skips + j] = buffer[skip_window]
-      labels[i * num_skips + j, 0] = buffer[context_word]
-    if data_index == len(data):
-      buffer.extend(data[0:span])
-      data_index = span
-    else:
-      buffer.append(data[data_index])
-      data_index += 1
-  # Backtrack a little bit to avoid skipping words in the end of a batch
-  data_index = (data_index + len(data) - span) % len(data)
-  return batch, labels
+    global data_index
+    assert batch_size % num_skips == 0
+    assert num_skips <= 2 * skip_window
+    batch = np.ndarray(shape=(batch_size), dtype=np.int32)
+    labels = np.ndarray(shape=(batch_size, 1), dtype=np.int32)
+    span = 2 * skip_window + 1  # [ skip_window target skip_window ]
+    buffer = collections.deque(maxlen=span)  # pylint: disable=redefined-builtin
+    if data_index + span > len(data):
+        data_index = 0
+    buffer.extend(data[data_index:data_index + span])
+    data_index += span
+    for i in range(batch_size // num_skips):
+        context_words = [w for w in range(span) if w != skip_window]
+        words_to_use = random.sample(context_words, num_skips)
+        for j, context_word in enumerate(words_to_use):
+            batch[i * num_skips + j] = buffer[skip_window]
+            labels[i * num_skips + j, 0] = buffer[context_word]
+        if data_index == len(data):
+            buffer.extend(data[0:span])
+            data_index = span
+        else:
+            buffer.append(data[data_index])
+            data_index += 1
+    # Backtrack a little bit to avoid skipping words in the end of a batch
+    data_index = (data_index + len(data) - span) % len(data)
+    return batch, labels
 
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
 def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5):
 
-  if joint_training:
-  	load_early = False
+    if joint_training:
+        load_early = False
 
-  vocabulary = read_data_nonzip(filename)
-  vocabulary_size = 200000
-
-
-  # Filling 4 global variables:
-  # data - list of codes (integers from 0 to vocabulary_size-1).
-  #   This is the original text but words are replaced by their codes
-  # count - map of words(strings) to count of occurrences
-  # dictionary - map of words(strings) to their codes(integers)
-  # reverse_dictionary - maps codes(integers) to words(strings)
-  data = []
-  count = 0
-  
-  if not dictionaries:
-      data, count, unused_dictionary, reverse_dictionary = build_dataset(
-          vocabulary, vocabulary_size)
-  else:
-      data, count, unused_dictionary, reverse_dictionary = dictionaries
+    vocabulary = read_data_nonzip(filename)
+    vocabulary_size = 200000
 
 
-  del vocabulary  # Hint to reduce memory.
-  print('Most common words (+UNK)', count[:5])
-  print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
+    # Filling 4 global variables:
+    # data - list of codes (integers from 0 to vocabulary_size-1).
+    #   This is the original text but words are replaced by their codes
+    # count - map of words(strings) to count of occurrences
+    # dictionary - map of words(strings) to their codes(integers)
+    # reverse_dictionary - maps codes(integers) to words(strings)
+    data = []
+    count = 0
 
-  batch_size=8500
-  embedding_size = 128  # Dimension of the embedding vector.
-  skip_window = 10# How many words to consider left and right.
-  num_skips = 20# How many times to reuse an input to generate a label.
-  num_sampled = 64  # Number of negative examples to sample.
-
-  # We pick a random validation set to sample nearest neighbors. Here we limit
-  # the validation samples to the words that have a low numeric ID, which by
-  # construction are also the most frequent. These 3 variables are used only for
-  # displaying model accuracy, they don't affect calculation.
-  valid_size = 16  # Random set of words to evaluate similarity on.
-  valid_window = 100  # Only pick dev samples in the head of the distribution.
-  valid_examples = np.random.choice(valid_window, valid_size, replace=False)
-  #print(valid_examples)
-
-  graph = tf.Graph()
-  with graph.as_default():
-
-    # Input data.
-    with tf.compat.v1.name_scope('inputs'):
-      if bigram_split:
-        train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None,2])
-      else:
-        train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None])
-      train_labels = tf.compat.v1.placeholder(tf.int32, shape=[None, 1])
-      valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
-
-    #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
-    with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
-
-      # Look up embeddings for inputs.
-      with tf.compat.v1.name_scope('embeddings'):
-        embeddings = tf.Variable(
-            tf.random.uniform([vocabulary_size, embedding_size], -1.0, 1.0))
-        #embed = tf.nn.
-        if bigram_split:
-            embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
-        else: embed = tf.nn.embedding_lookup(params=embeddings, ids=train_inputs)
+    if not dictionaries:
+        data, count, unused_dictionary, reverse_dictionary = build_dataset(
+            vocabulary, vocabulary_size)
+    else:
+        data, count, unused_dictionary, reverse_dictionary = dictionaries
 
 
-      # Construct the variables for the NCE loss
-      with tf.compat.v1.name_scope('weights'):
-        nce_weights = tf.Variable(
-            tf.random.truncated_normal([vocabulary_size, embedding_size],
-                                stddev=1.0 / math.sqrt(embedding_size)))
+    del vocabulary  # Hint to reduce memory.
+    print('Most common words (+UNK)', count[:5])
+    print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
-      with tf.compat.v1.name_scope('biases'):
-        nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
+    batch_size=8500
+    embedding_size = 128  # Dimension of the embedding vector.
+    skip_window = 10# How many words to consider left and right.
+    num_skips = 20# How many times to reuse an input to generate a label.
+    num_sampled = 64  # Number of negative examples to sample.
 
-    # Compute the average NCE loss for the batch.
-    # tf.nce_loss automatically draws a new sample of the negative labels each
-    # time we evaluate the loss.
-    # Explanation of the meaning of NCE loss:
-    #   http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/
+    # We pick a random validation set to sample nearest neighbors. Here we limit
+    # the validation samples to the words that have a low numeric ID, which by
+    # construction are also the most frequent. These 3 variables are used only for
+    # displaying model accuracy, they don't affect calculation.
+    valid_size = 16  # Random set of words to evaluate similarity on.
+    valid_window = 100  # Only pick dev samples in the head of the distribution.
+    valid_examples = np.random.choice(valid_window, valid_size, replace=False)
+    #print(valid_examples)
 
-    with tf.compat.v1.name_scope('loss'):
-      loss = tf.reduce_mean(
-          input_tensor=tf.nn.nce_loss(
-              weights=nce_weights,
-              biases=nce_biases,
-              labels=train_labels,
-              inputs=embed,
-              num_sampled=num_sampled,
-              num_classes=vocabulary_size))
+    graph = tf.Graph()
+    with graph.as_default():
 
-    # Add the loss value as a scalar to summary.
-    tf.compat.v1.summary.scalar('loss', loss)
+        # Input data.
+        with tf.compat.v1.name_scope('inputs'):
+            if bigram_split:
+                train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None,2])
+            else:
+                train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None])
+            train_labels = tf.compat.v1.placeholder(tf.int32, shape=[None, 1])
+            valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-    # Construct the SGD optimizer using a learning rate of 1.0.
-    with tf.compat.v1.name_scope('optimizer'):
-      #optimizer = tf.train.AdamOptimizer(learning_rate=5e-4,beta1=0.9,beta2=0.999).minimize(loss)
-      optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(loss)
-      #cosine_optimizer = tf.train.GradientDescentOptimizer(1).minimize(cosine_loss)
+        #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
+        #with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
+        with tf.device('/job:localhost/replica:0/task:0/device:CPU:0'):
 
-    # Compute the cosine similarity between minibatch examples and all
-    
-    # Merge all summaries.
-    merged = tf.compat.v1.summary.merge_all()
-
-    # Add variable initializer.
-    init = tf.compat.v1.global_variables_initializer()
-
-    # Create a saver.
-    saver = tf.compat.v1.train.Saver()
-
-
-  # Step 5: Begin training.
-  num_steps = 30000
-  #if retraining: 
-  #else:
-  #    num_steps = 20000
+            # Look up embeddings for inputs.
+            with tf.compat.v1.name_scope('embeddings'):
+                embeddings = tf.Variable(
+                    tf.random.uniform([vocabulary_size, embedding_size], -1.0, 1.0))
+                #embed = tf.nn.
+                if bigram_split:
+                    embed = bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary)
+                else: embed = tf.nn.embedding_lookup(params=embeddings, ids=train_inputs)
 
 
-  with tf.compat.v1.Session(graph=graph) as session:
-    # Open a writer to write summaries.
-    writer = tf.compat.v1.summary.FileWriter(log_dir, session.graph)
+            # Construct the variables for the NCE loss
+            with tf.compat.v1.name_scope('weights'):
+                nce_weights = tf.Variable(
+                    tf.random.truncated_normal([vocabulary_size, embedding_size],
+                                        stddev=1.0 / math.sqrt(embedding_size)))
 
-    # We must initialize all variables before we use them.
-    init.run()
-    print('Initialized')
+            with tf.compat.v1.name_scope('biases'):
+                nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
 
-    if (get_embeddings or load) and load_early:
-        saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
-        print("MODEL RESTORED")
-        if get_embeddings:
-            return embeddings.eval(), nce_weights.eval()
+        # Compute the average NCE loss for the batch.
+        # tf.nce_loss automatically draws a new sample of the negative labels each
+        # time we evaluate the loss.
+        # Explanation of the meaning of NCE loss:
+        #   http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/
 
-    print("LEN EMBEDDINGS")
-    print(tf.size(input=embeddings), tf.size(input=embeddings[0]))
-    average_loss = 0
-    #batch_inputs = np.zeros([batch_size])
-    batch_inputs = np.array([], dtype=int)
-    #batch_labels = np.zeros([batch_size, 1])
-    batch_labels = np.array([], dtype=int)
-    
-    if not joint_training:
-        
-        if retraining:
-          inputs, labels = process_inputs(X, y)
-          for i in range(len(inputs)):
-              batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-              batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+        with tf.compat.v1.name_scope('loss'):
+            loss = tf.reduce_mean(
+                input_tensor=tf.nn.nce_loss(
+                    weights=nce_weights,
+                    biases=nce_biases,
+                    labels=train_labels,
+                    inputs=embed,
+                    num_sampled=num_sampled,
+                    num_classes=vocabulary_size))
 
-          batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+        # Add the loss value as a scalar to summary.
+        tf.compat.v1.summary.scalar('loss', loss)
 
-          if cosine:
-              if bigram_split:
-                  itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None,2])
-                  nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-                  x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-                  y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
-              else:
-                  itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-                  nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-                  x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
-                  y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
-            
+        # Construct the SGD optimizer using a learning rate of 1.0.
+        with tf.compat.v1.name_scope('optimizer'):
+            #optimizer = tf.train.AdamOptimizer(learning_rate=5e-4,beta1=0.9,beta2=0.999).minimize(loss)
+            optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(loss)
+            #cosine_optimizer = tf.train.GradientDescentOptimizer(1).minimize(cosine_loss)
 
-              new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-              new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(new_loss)
-              session.run(tf.compat.v1.global_variables_initializer())
+        # Compute the cosine similarity between minibatch examples and all
 
-        if (get_embeddings or load) and not load_early:
-            saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
+        # Merge all summaries.
+        merged = tf.compat.v1.summary.merge_all()
+
+        # Add variable initializer.
+        init = tf.compat.v1.global_variables_initializer()
+
+        # Create a saver.
+        saver = tf.compat.v1.train.Saver()
+
+
+    # Step 5: Begin training.
+    num_steps = 1000
+    #if retraining:
+    #else:
+    #    num_steps = 20000
+
+
+    with tf.compat.v1.Session(graph=graph) as session:
+        # Open a writer to write summaries.
+        writer = tf.compat.v1.summary.FileWriter(log_dir, session.graph)
+
+        # We must initialize all variables before we use them.
+        init.run()
+        print('Initialized')
+
+        if (get_embeddings or load) and load_early:
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print(load_dir)
+            saver.restore(session, os.path.join(load_dir, 'model.ckpt'))
             print("MODEL RESTORED")
             if get_embeddings:
                 return embeddings.eval(), nce_weights.eval()
 
-        for step in xrange(num_steps):
-          if not retraining:
-              batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+        print("LEN EMBEDDINGS")
+        print(tf.size(input=embeddings), tf.size(input=embeddings[0]))
+        average_loss = 0
+        #batch_inputs = np.zeros([batch_size])
+        batch_inputs = np.array([], dtype=int)
+        #batch_labels = np.zeros([batch_size, 1])
+        batch_labels = np.array([], dtype=int)
 
-          # Deal with bigrams
-          if bigram_split:
-              modded_batch_inputs, modded_batch_labels = split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary)
-              feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
-              if cosine:
-                  feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : np.squeeze(modded_batch_labels)}
-                  #feed_dict = {itemplaceholder: modded_batch_inputs, nexttoplaceholder : modded_batch_labels}
-              else:
-                  feed_dict = {train_inputs: modded_batch_inputs, train_labels: modded_batch_labels}
-          else:
-              if cosine:
-                  feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
-                  #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
-                
-              else:
-                  feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
 
-          if cosine:
-                  _, loss_val = session.run([new_optimizer, new_loss],
-                                                         feed_dict=feed_dict)
-          else:
-                  run_metadata = tf.compat.v1.RunMetadata()
-                  _, summary, loss_val = session.run([optimizer, merged, loss],
-                                                         feed_dict=feed_dict,
-                                                         run_metadata=run_metadata)
-          average_loss += loss_val
+        ### TRAIN ORIGINAL WIKI
+        if not retraining:
+            for step in xrange(num_steps):
+                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+                feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+                run_metadata = tf.compat.v1.RunMetadata()
+                _, summary, loss_val = session.run([optimizer, merged, loss],
+                                                       feed_dict=feed_dict,
+                                                       run_metadata=run_metadata)
+                average_loss += loss_val
 
-          if step % 100 == 0:
-              if step > 0:
-                  average_loss /= 100
-              print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
-              average_loss = 0
+                if step % 100 == 0:
+                    if step > 0:
+                        average_loss /= 100
+                    print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+                    average_loss = 0
+                    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
 
-    if joint_training:
-        a = a
-        b = b
-        inputs, labels = process_inputs(X, y)
-        turk_batch_inputs = np.array([], dtype=int)
-        turk_batch_labels = np.array([], dtype=int)
-        for i in range(len(inputs)):
-            turk_batch_inputs = np.append(turk_batch_inputs, unused_dictionary.get(inputs[i]))
-            turk_batch_labels = np.append(turk_batch_labels, unused_dictionary.get(labels[i]))
 
-        turk_batch_labels = np.reshape(turk_batch_labels, (len(turk_batch_labels), 1))
 
-        if bigram_split:
-            itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None,2])
-            nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
-            x = bigram_embedding_lookup(embeddings, itemplaceholder, reverse_dictionary)
-            y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
+        if retraining:
+            ### COSINE LOOP
+            inputs, labels = process_inputs(X, y)
+            for i in range(len(inputs)):
+                batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+                batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
 
-        else:
+            batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+
             itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
             y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
 
-        cosine_loss = tf.math.scalar_mul(1000, tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1))
-        #cosine_loss = tf.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-        joint_loss = tf.add(tf.math.scalar_mul(a, loss), tf.math.scalar_mul(b, cosine_loss)) 
-        joint_optimizer = tf.compat.v1.train.GradientDescentOptimizer(5e-4).minimize(joint_loss)
-        #cosine_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(cosine_loss)
-        #reg_optimizer = tf.train.GradientDescentOptimizer(5e-4).minimize(loss)
-        session.run(tf.compat.v1.global_variables_initializer())
 
-        if bigram_split:
-            modded_turk_inputs, modded_turk_labels = split_bigrams(turk_batch_inputs, turk_batch_labels, unused_dictionary, reverse_dictionary)
-
-        if (get_embeddings or load) and not load_early:
-            saver.restore(session, os.path.join(load_dir, 'model.ckpt')) 
-            print("MODEL RESTORED")
-            if get_embeddings:
-                return embeddings.eval(), nce_weights.eval()
-
-        for step in xrange(num_steps):
-                sg_batch_inputs, sg_batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
-                if bigram_split:
-                    modded_sg_inputs, modded_sg_labels = split_bigrams(sg_batch_inputs, sg_batch_labels, unused_dictionary, reverse_dictionary) 
-                    feed_dict = {train_inputs: modded_sg_inputs, train_labels: modded_sg_labels, itemplaceholder: modded_turk_inputs, nexttoplaceholder: np.squeeze(modded_turk_labels)} 
-                else: feed_dict = {train_inputs: sg_batch_inputs, train_labels: sg_batch_labels, itemplaceholder: turk_batch_inputs, nexttoplaceholder: np.squeeze(turk_batch_labels) }
+            new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(new_loss)
+            session.run(tf.compat.v1.global_variables_initializer())
 
 
-                _, loss_val = session.run([joint_optimizer, joint_loss],
-                                                   feed_dict=feed_dict)
-                #_, cosine_loss_val = session.run([cosine_optimizer, cosine_loss],
-                #                                   feed_dict=feed_dict)
-                #_, reg_loss_val = session.run([reg_optimizer, loss],
-                #                                   feed_dict=feed_dict)
+            for step in xrange(num_steps):
+                feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
+                #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
 
+                _, loss_val = session.run([new_optimizer, new_loss],
+                                                           feed_dict=feed_dict)
                 average_loss += loss_val
-                if step % 10 == 0:
+
+                if step % 100 == 0:
                     if step > 0:
-                        average_loss /= 10
+                        average_loss /= 100
                     print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
                     average_loss = 0
-        
+                    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+
+
+            ###===================================================================================
+            ### WIKI LOOP
+            for step in xrange(num_steps):
+                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+                run_metadata = tf.compat.v1.RunMetadata()
+                feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
+                _, summary, loss_val = session.run([optimizer, merged, loss],
+                                                       feed_dict=feed_dict,
+                                                       run_metadata=run_metadata)
+                average_loss += loss_val
+
+                if step % 100 == 0:
+                    if step > 0:
+                        average_loss /= 100
+                    print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
+                    average_loss = 0
+                    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
 
 
 
-    # Write corresponding labels for the embeddings.
-    with open(log_dir + '/metadata.tsv', 'w') as f:
-        for i in xrange(vocabulary_size):
-            f.write(reverse_dictionary[i] + '\n')
 
-      # Save the model for checkpoints.
-            
-      #Note: You ONLY WANT to save the model if you are training on the
-      #data for the first time. If retraining for multiple test sets, don't save it.
-    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-    return embeddings.eval(), nce_weights.eval()
 
+
+        # Write corresponding labels for the embeddings.
+        with open(log_dir + '/metadata.tsv', 'w') as f:
+            for i in xrange(vocabulary_size):
+                f.write(reverse_dictionary[i] + '\n')
+
+            # Save the model for checkpoints.
+
+            #Note: You ONLY WANT to save the model if you are training on the
+            #data for the first time. If retraining for multiple test sets, don't save it.
+        if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+        return embeddings.eval(), nce_weights.eval()
