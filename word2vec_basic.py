@@ -27,6 +27,7 @@ import random
 import sys
 from tempfile import gettempdir
 import zipfile
+from pathlib import Path
 
 import word2vec_eval
 import util
@@ -91,7 +92,6 @@ def build_dataset(words, n_words):
     return data, count, dictionary, reversed_dictionary
 
 def get_pretrain_dictionaries(filename):
-
     n_words = 200000
     data = read_data_nonzip(filename)
     return build_dataset(data, n_words)
@@ -195,6 +195,16 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5):
 
+    global data_index
+
+    # load the current data index from file if it exists
+    index_file_path = Path("./data_index")
+    if index_file_path.is_file():
+        di_f = open( 'data_index', 'r' )
+        data_index = int(di_f.readline())
+        di_f.close()
+	
+    
     if joint_training:
         load_early = False
 
@@ -251,7 +261,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
         #with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
-        with tf.device('/job:localhost/replica:0/task:0/device:CPU:0'):
+        with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
 
             # Look up embeddings for inputs.
             with tf.compat.v1.name_scope('embeddings'):
@@ -310,10 +320,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
     # Step 5: Begin training.
-    num_steps = 1000
-    #if retraining:
-    #else:
-    #    num_steps = 20000
+    num_wiki_steps = 30000
+    num_cosine_steps = 1
+    num_wiki_retrain = 500
 
 
     with tf.compat.v1.Session(graph=graph) as session:
@@ -343,7 +352,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         ### TRAIN ORIGINAL WIKI
         if not retraining:
-            for step in xrange(num_steps):
+            for step in xrange(num_wiki_steps):
                 batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
                 run_metadata = tf.compat.v1.RunMetadata()
@@ -357,7 +366,11 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                         average_loss /= 100
                     print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
                     average_loss = 0
-                    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+                    if save: 
+                        saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+                        di_f = open('data_index', 'w')
+                        di_f.write(str(data_index)) 
+                        di_f.close()
 
 
 
@@ -381,7 +394,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             session.run(tf.compat.v1.global_variables_initializer())
 
 
-            for step in xrange(num_steps):
+            for step in xrange(num_cosine_steps):
                 feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
                 #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
 
@@ -399,7 +412,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
             ###===================================================================================
             ### WIKI LOOP
-            for step in xrange(num_steps):
+            for step in xrange(num_wiki_retrain):
                 batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
                 run_metadata = tf.compat.v1.RunMetadata()
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
@@ -413,7 +426,11 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                         average_loss /= 100
                     print('Average loss at step ', step, ': ', average_loss, " time: ", datetime.datetime.now())
                     average_loss = 0
-                    if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+                    if save: 
+                        saver.save(session, os.path.join(log_dir, 'model.ckpt'))
+                        di_f = open('data_index', 'w')
+                        di_f.write(str(data_index)) 
+                        di_f.close()
 
 
 

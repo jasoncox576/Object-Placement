@@ -1,6 +1,7 @@
 from word2vec_basic import *
 from word2vec_eval import *
 from object_placement_turk import *
+import sys
 import os
 
 def train_original_model(filename, save_dir, load_dir=None, load=False):
@@ -57,7 +58,7 @@ if __name__=="__main__":
     filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
     turk_filename = "final_cleaned_results.csv"
 
-    train_wiki=False
+    train_wiki=True
 
 
     train_x = []
@@ -98,6 +99,7 @@ if __name__=="__main__":
 
     if train_wiki:
         embeddings, weights = train_by_name(None, None, bigram_dictionaries, filename, "1", "wiki_output", load=False)
+        sys.exit(0)
     else:
         embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
 
