@@ -67,6 +67,8 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
 
     else:
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+        print("INDEX!! ", index)
+        print(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
         embeds = (embed, None)
         n_embed = embed/ np.linalg.norm(embed)
@@ -162,6 +164,9 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
         third_choice_index = -1
             
         if (num_choices >= 3):
+            #print("SIM VECTOR!")
+            #print(len(embedding_sim_vector))
+            #print(embedding_sim_vector)
             third_choice_index = embedding_sim_vector.index(np.partition(embedding_sim_vector, -3)[-3])
         if (num_choices >= 2):
             second_choice_index = embedding_sim_vector.index(np.partition(embedding_sim_vector, -2)[-2])

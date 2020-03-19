@@ -193,17 +193,20 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
-def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5):
+def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5, data_index_dir="data_index"):
 
     global data_index
 
     # load the current data index from file if it exists
-    index_file_path = Path("./data_index")
+    index_file_path = Path("./"+data_index_dir)
     if index_file_path.is_file():
-        di_f = open( 'data_index', 'r' )
+        di_f = open(data_index_dir, 'r' )
         data_index = int(di_f.readline())
         di_f.close()
-	
+    elif retraining:
+        di_f = open("data_index", 'r')
+        data_index = int(di_f.readline())
+        di_f.close()
     
     if joint_training:
         load_early = False
@@ -224,13 +227,17 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     if not dictionaries:
         data, count, unused_dictionary, reverse_dictionary = build_dataset(
             vocabulary, vocabulary_size)
+        print("*************************************************************")
+        print("Building DICT")
     else:
         data, count, unused_dictionary, reverse_dictionary = dictionaries
+        print("*************************************************************")
+        print("COPYING DICT")
 
 
     del vocabulary  # Hint to reduce memory.
-    print('Most common words (+UNK)', count[:5])
-    print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
+    #print('Most common words (+UNK)', count[:5])
+    #print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
     batch_size=8500
     embedding_size = 128  # Dimension of the embedding vector.
@@ -261,7 +268,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
         #with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
-        with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
+        with tf.device('/job:localhost/replica:0/task:0/device:cpu:0'):
 
             # Look up embeddings for inputs.
             with tf.compat.v1.name_scope('embeddings'):
@@ -320,8 +327,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
     # Step 5: Begin training.
-    num_wiki_steps = 30000
-    num_cosine_steps = 1
+    num_wiki_steps = 100000
+    num_cosine_steps = 500
     num_wiki_retrain = 500
 
 
@@ -334,15 +341,14 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         print('Initialized')
 
         if (get_embeddings or load) and load_early:
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(load_dir)
+            print("Loading from ", load_dir)
             saver.restore(session, os.path.join(load_dir, 'model.ckpt'))
             print("MODEL RESTORED")
             if get_embeddings:
                 return embeddings.eval(), nce_weights.eval()
 
-        print("LEN EMBEDDINGS")
-        print(tf.size(input=embeddings), tf.size(input=embeddings[0]))
+        #print("LEN EMBEDDINGS")
+        #print(tf.size(input=embeddings), tf.size(input=embeddings[0]))
         average_loss = 0
         #batch_inputs = np.zeros([batch_size])
         batch_inputs = np.array([], dtype=int)
@@ -368,7 +374,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
                     if save: 
                         saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-                        di_f = open('data_index', 'w')
+                        di_f = open(data_index_dir, 'w')
                         di_f.write(str(data_index)) 
                         di_f.close()
 
@@ -394,9 +400,16 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             session.run(tf.compat.v1.global_variables_initializer())
 
 
+            if (get_embeddings or load) and not load_early:
+                saver.restore(session, os.path.join(load_dir, 'model.ckpt'))
+                #print("MODEL RESTORED")
+                print("Loading from", load_dir)
+                if get_embeddings:
+                    return embeddings.eval(), nce_weights.eval()
+
+
             for step in xrange(num_cosine_steps):
                 feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
-                #feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: batch_labels}
 
                 _, loss_val = session.run([new_optimizer, new_loss],
                                                            feed_dict=feed_dict)
@@ -409,6 +422,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
                     if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
 
+            """
 
             ###===================================================================================
             ### WIKI LOOP
@@ -428,10 +442,11 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
                     if save: 
                         saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-                        di_f = open('data_index', 'w')
+                        di_f = open(data_index_dir, 'w')
                         di_f.write(str(data_index)) 
                         di_f.close()
 
+            """
 
 
 
