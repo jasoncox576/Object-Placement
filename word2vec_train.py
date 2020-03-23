@@ -1,97 +1,159 @@
 from word2vec_basic import *
+from word2vec_eval import *
 from object_placement_turk import *
-import csv
-
-def train_original_model(filename, save_dir, load_dir, load=False):
-    word2vec_turk(save_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=False, load=load)
-    return
-
-def train_original_bigram_split(filename, save_dir, load=False):
-    word2vec_turk(save_dir, load_dir=save_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=True, load=load)
-    return
-    
-
-def retrain_model_and_get_embeddings(X, y, dictionaries, filename, cosine, load_dir, save_dir, bigram_split=False):
-    return word2vec_turk(save_dir, load_dir, filename=filename, retraining=True, X=X, y=y, dictionaries=dictionaries, bigram_split=bigram_split, load=True, cosine=cosine) 
-    
-
-def train_on_turk_exclusively(X, y, dictionaries, filename, cosine,save_dir):
-    return word2vec_turk(save_dir, load_dir=save_dir, filename=filename, retraining=True, X=X, y=y, dictionaries=dictionaries,bigram_split=False, load=False, cosine=cosine)
+import pickle
+import sys
+import os
 
 
-def train_joint_loss(X, y, dictionaries, filename, bigram_split, save_dir):
-    return word2vec_turk(save_dir, load_dir=save_dir, filename=filename, X=X, y=y, dictionaries=dictionaries, bigram_split=bigram_split, load=False, cosine=False, joint_training=True)
+#NOTE: This procedure trains using validation sets
+
+def train_original_model(filename, save_dir, load_dir=None, load=False):
+    return word2vec_turk(save_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=None, bigram_split=False, load=load)
+
+def retrain_model_and_get_embeddings(X, y, dictionaries, filename, cosine, load_dir, save_dir, bigram_split=True, joint_training=False, data_index_dir="data_index"):
+    return word2vec_turk(save_dir, load_dir, filename=filename, retraining=True, X=X, y=y, dictionaries=dictionaries, bigram_split=bigram_split, load=True, cosine=cosine, joint_training=joint_training, data_index_dir=data_index_dir)
 
 def get_embeddings(load_dir, filename, dictionaries):
     return word2vec_turk(load_dir, load_dir=load_dir, filename=filename, retraining=False, X=None, y=None, dictionaries=dictionaries, get_embeddings=True)
 
 
+
+def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_dir=None):
+
+
+    if model == 'wiki_cosine' or model == 'wiki_output':
+        directory = model
+        #trained the same way, just evaluted differently
+        print("TRAINING WIKI")
+        return train_original_model(filename, save_dir=directory, load_dir=directory, load=load)
+
+    if model == 'wiki+turk_cosine':
+        directory = training_set+'_'+model
+        if load:
+            print(directory)
+            return retrain_model_and_get_embeddings(X, y, dictionaries, filename, cosine=True, save_dir=directory, load_dir=directory, bigram_split=False, joint_training=True, data_index_dir=training_set+"_data_index")
+        else:
+            temp_load_dir = "wiki_output"
+            return retrain_model_and_get_embeddings(X, y, dictionaries, filename, cosine=True, save_dir=directory, load_dir=temp_load_dir, bigram_split=False, joint_training=True)
+
+
+
 if __name__=="__main__":
-  filename = 'fil9_bigram'
-  #filename = 'text8'
-  #filename = 'modified_text'
-  turk_filename = "annotations/clean_annotations.csv"
-  
-  train1 = read_csv_train_test("4_train.csv")
-  train2 = read_csv_train_test("5_train.csv")
+    filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
+    turk_filename = "final_cleaned_results.csv"
 
-  train_sets = [train1, train2]
-
-  bigram_dictionaries = get_pretrain_dictionaries(filename)
-  bigram_unused_dictionary = bigram_dictionaries[2]
-
-#   with open("bigramdicts", "w+") as write_file:
-#         writer = csv.writer(write_file)
-#         for key,value in bigram_unused_dictionary.items():
-#             writer.writerow([key])
-
-  
-
-  wiki_dir = "wiki"
-  bigram_dir = "bigram_wiki"
-
-  print("TRAINING ON WIKIPEDIA")
-#   train_original_model(filename, load_dir=None, save_dir=wiki_dir)
-  print("TRAINING BIGRAM-SPLIT ON WIKIPEDIA")
-#   train_original_bigram_split(filename, save_dir=bigram_dir)
-  
+    train_wiki=False
 
 
-  for set_num in range(len(train_sets)):
-      print("TRAIN SET #" + str(set_num+1) + ":::")
+    train_x = []
+    train_y = []
+    validate_x = []
+    validate_y = []
+    optimals = []
+
+    num_ind = 0
+    for num in list([0,3,4]):
+        train1 = read_csv_train_test("data/"+str(num+1)+"_train.csv")
+        validate_x.append([])
+        validate_y.append([])
+        train_x.append([])
+        train_y.append([])
+        for i in range(int(len(train1[0])/3)):
+            index = random.choice(range(len(train1[0])))
+            """
+            validate_x[num].append(train1[0][index])
+            validate_y[num].append(train1[1][index])
+            """
+            validate_x[num_ind].append(train1[0][index])
+            validate_y[num_ind].append(train1[1][index])
+            del train1[0][index]
+            del train1[1][index]
+        train_x[num_ind].append(train1[0])
+        train_y[num_ind].append(train1[1])
+        num_ind += 1
+
+    print("==========================================================")
 
 
-      train_x, train_y = train_sets[set_num]
+    models = ['wiki_output', 'wiki+turk_cosine']
 
-      #MODEL #2: Retrain on cosine. 
-      print("TRAINING WIKIPEDIA->TURK")
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, turk_filename, cosine=True, load_dir=wiki_dir, save_dir= str(set_num+1)+"_wiki+turk_cosine") 
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, turk_filename, cosine=False, load_dir=wiki_dir, save_dir=str(set_num+1)+"_wiki+turk_output") 
+    """
+    Training Procedure:
+    ------------------
+    -Train a w2v model from wikipedia.
+    -Grab the embeddings, figure out how well they do
+    -Train cosine off of that & keep going.
+    -alternate between w2v and cosine.
+    """
 
-      print("TRAINING TURK EXCLUSIVE")
-      #MODEL #3: Just train on turk.
-      train_on_turk_exclusively(train_x, train_y, bigram_dictionaries, turk_filename, cosine=True, save_dir=str(set_num+1)+"_turk_cosine") 
-      train_on_turk_exclusively(train_x, train_y, bigram_dictionaries, turk_filename, cosine=False, save_dir=str(set_num+1)+"_turk_output") 
+    if train_wiki:
+        bigram_dictionaries = get_pretrain_dictionaries(filename)
+        bigram_unused_dictionary = bigram_dictionaries[2]
+        embeddings, weights = train_by_name(None, None, bigram_dictionaries, filename, "1", "wiki_output", load=False)
+        with open('dictionaries', 'wb') as dict_file:
+            pickle.dump(bigram_dictionaries, dict_file)
+        sys.exit(0)
+    else:
+        with open('dictionaries', 'rb') as dict_file:
+            bigram_dictionaries = pickle.load(dict_file)
+            bigram_unused_dictionary = bigram_dictionaries[2]
+        embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
 
-      print("TRAINING TURK->WIKIPEDIA")
-      #MODEL #4: Trained on turk, now train on wiki.
-      train_original_model(filename, save_dir=str(set_num+1)+"_turk+wiki_cosine", load_dir=str(set_num+1)+"_turk_cosine", load=True)
-      train_original_model(filename, save_dir=str(set_num+1)+"_turk+wiki_output", load_dir=str(set_num+1)+"_turk_output", load=True)
-
-      print("TRAINING USING BIGRAM SPLIT")
-      #MODEL #5: Bigram
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, cosine=True, load_dir=bigram_dir, save_dir=str(set_num+1)+"_bigram_cosine")
-      retrain_model_and_get_embeddings(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, cosine=False, load_dir=bigram_dir, save_dir=str(set_num+1)+"_bigram_output")
-      
-      print("TRAINING JOINT LOSS")
-      #MODEL #7:  Joint loss
-      train_joint_loss(train_x, train_y, bigram_dictionaries, filename, bigram_split=False, save_dir=str(set_num+1)+"_joint") 
-      
-      print("TRAINING JOINT LOSS (BIGRAM_SPLIT)")
-      #MODEL #8: Joint loss (bigram split)
-      train_joint_loss(train_x, train_y, bigram_dictionaries, filename, bigram_split=True, save_dir=str(set_num+1)+"_joint_bigram") 
+    current_model = models[1]
 
 
+    num_ind = 0
+    for num in list([0,3,4]):
+        print("TRAINING NEW MODEL:", current_model)
+        current_x, current_y = train_x[num_ind][0], train_y[num_ind][0] 
+        optimal_n_epochs = 0
+        old_acc = 0.0
+        new_acc = 0.0
+        load=False
+        n_equals = 0
+        cosine_model_initialized=False
+        while True:
+            if new_acc <= old_acc:
+                n_equals += 1
+                if n_equals > 1:
+                    break
+            else:
+                n_equals = 0
+            old_acc = new_acc
+            if cosine_model_initialized:
+                embeddings, weights = get_embeddings(str(num+1)+"_"+current_model, filename, bigram_dictionaries)
+            else:
+                embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
+
+            
+            ## Debugging: to verify that the training set trim-down is working
+            len_old_filtered = 0
+            if cosine_model_initialized:
+                len_old_filtered = len(current_x) 
+
+            current_x, current_y = evaluate_word2vec_cosine(current_x, current_y, embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False, discard_instances=True)
+            
+            filtered_diff = len_old_filtered - len(current_x) 
+            print("DIFFERENCE OF FILTERED DATASET: Old:", str(len_old_filtered), "New:", str(len(current_x)))
+
+            print("ABOUT TO TRAIN NEW SET")
+            embeddings, weights = train_by_name(current_x, current_y, bigram_dictionaries, filename, str(num+1), current_model, load)
+            cosine_model_initialized = True
+
+            new_acc = evaluate_word2vec_cosine(validate_x[num_ind], validate_y[num_ind], embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False)
 
 
+            optimal_n_epochs += 1000
+            load=True
+            print("BATCH FINISHED")
+            print("OLD ACC:", old_acc)
+            print("NEW ACC:", new_acc)
 
+
+        optimal_n_epochs -= 2000
+
+        print("OPTIMAL NUMBER OF EPOCHS: ", optimal_n_epochs)
+        print("Accuracy: ", new_acc)
+        optimals.append(optimal_n_epochs)
+        num_ind += 1
