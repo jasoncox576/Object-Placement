@@ -1,10 +1,11 @@
 import csv
 import copy
+import os
 
 def make_train_test_csv(train, test, filename_prefix):
     #seen_permutations = []
-    test_filename = filename_prefix + "_test.csv"
-    train_filename = filename_prefix + "_train.csv"
+    test_filename = os.path.join(os.getcwd(), "..", (filename_prefix + "_test.csv"))
+    train_filename = os.path.join(os.getcwd(), "..", (filename_prefix + "_train.csv"))
     test_csv = open(test_filename, "w")
     train_csv = open(train_filename, "w")
     

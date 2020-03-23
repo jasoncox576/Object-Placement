@@ -7,6 +7,7 @@ from word2vec_train_tuned import *
 import numpy as np
 import matrix_priors
 import random
+import os
 
 def evaluate_empirical(matrix, X, y, test, rows_dict):
     total_correct = 0
@@ -103,8 +104,9 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
 
 
 def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False, discard_instances=False):
+    outfile_name = os.path.join(os.getcwd(), "..", outfile_name)
     out_file = open(outfile_name, 'w') 
-    hist_file = open("choices_res.csv", 'a')
+    hist_file = open(os.path.join(os.getcwd(), "..", "choices_res.csv"), 'a')
 
     total_correct = 0
     first_choice = 0
@@ -197,6 +199,7 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
 
 
 
+"""
 
 def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name, bigram_split=False):
     out_file = open(outfile_name, 'w')
@@ -270,6 +273,7 @@ def evaluate_word2vec_output(X, y, embeddings, weights, dictionary, outfile_name
 
     return total_correct/len(X)
 
+"""
 
 """
 if __name__=="__main__":

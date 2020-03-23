@@ -6,6 +6,7 @@ import numpy as np
 import csv
 import copy
 import sys
+import os
 
 
 def get_agreements(X, y):
@@ -434,36 +435,8 @@ def get_validation_train_test(filename):
 
 
 if __name__=='__main__':
-    get_train_test("final_cleaned_results.csv") 
-    # get_validation_train_test("final_cleaned_results.csv")
-    #get_train_test("annotations/clean_annotations.csv")
     
-    """
-    X1, y1 = read_csv_train_test("data/5_train.csv")
-    X2, y2 = read_csv_train_test("data/5_test.csv")
+    filename = "final_cleaned_results.csv"
+    filename_dir = os.path.join(os.getcwd, "..", filename)
 
-    X = np.concatenate([X1, X2])
-    y = np.concatenate([y1, y2])
-
-    
-    four_count, three_count, two_count, one_count, fours, threes, twos, ones = get_agreements(X, y) 
-    total = four_count+three_count+two_count+one_count
-    print("FOUR COUNT", four_count)
-    print("THREE COUNT", three_count)
-    print("TWO COUNT", two_count)
-    print("ONE COUNT", one_count)
-    print("TOTAL:", total) 
-
-    for elem in fours:
-        print(elem)
-    print("==============================")
-    for elem in threes:
-        print(elem)
-    print("==============================")
-    for elem in twos:
-        print(elem)
-    print("==============================")
-    for elem in ones:
-        print(elem)
-    print("==============================")
-    """
+    get_train_test(filename_dir) 

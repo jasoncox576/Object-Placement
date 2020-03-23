@@ -68,7 +68,8 @@ def read_data(filename):
     return data
 
 def read_data_nonzip(filename):
-    with open(filename, 'r') as f:
+    filename_dir = os.path.join(os.getcwd(), "..", filename)
+    with open(filename_dir, 'r') as f:
         data = f.read().split()
     return data
 
@@ -195,16 +196,19 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5, data_index_dir="data_index"):
 
+    log_dir = os.path.join(os.path.abspath(os.getcwd()), log_dir)
+    load_dir = os.path.join(os.path.abspath(os.getcwd()), load_dir)
+
     global data_index
 
     # load the current data index from file if it exists
-    index_file_path = Path("./"+data_index_dir)
+    index_file_path = Path("../"+data_index_dir)
     if index_file_path.is_file():
-        di_f = open(data_index_dir, 'r' )
+        di_f = open(os.path.join(os.getcwd(), "..", data_index_dir), 'r' )
         data_index = int(di_f.readline())
         di_f.close()
     elif retraining:
-        di_f = open("data_index", 'r')
+        di_f = open(os.path.join(os.getcwd(), "..", "data_index"), 'r')
         data_index = int(di_f.readline())
         di_f.close()
     
@@ -370,7 +374,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
                     if save: 
                         saver.save(session, os.path.join(log_dir, 'model.ckpt'))
-                        di_f = open(data_index_dir, 'w')
+                        di_f = open(os.path.join(os.getcwd(), "..", data_index_dir), 'w')
                         di_f.write(str(data_index)) 
                         di_f.close()
 

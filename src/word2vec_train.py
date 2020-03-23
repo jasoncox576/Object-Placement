@@ -87,15 +87,17 @@ if __name__=="__main__":
     -alternate between w2v and cosine.
     """
 
+    dictionaries_dir = os.path.join(os.getcwd, "..", "dictionaries")
+
     if train_wiki:
         bigram_dictionaries = get_pretrain_dictionaries(filename)
         bigram_unused_dictionary = bigram_dictionaries[2]
         embeddings, weights = train_by_name(None, None, bigram_dictionaries, filename, "1", "wiki_output", load=False)
-        with open('dictionaries', 'wb') as dict_file:
+        with open(dictionaries_dir, 'wb') as dict_file:
             pickle.dump(bigram_dictionaries, dict_file)
         sys.exit(0)
     else:
-        with open('dictionaries', 'rb') as dict_file:
+        with open(dictionaries_dir, 'rb') as dict_file:
             bigram_dictionaries = pickle.load(dict_file)
             bigram_unused_dictionary = bigram_dictionaries[2]
         embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
