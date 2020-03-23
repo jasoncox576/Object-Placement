@@ -20,22 +20,25 @@ if __name__=="__main__":
             results_writer = csv.writer(accuracies_file)
 
             #X, y = get_train_test(turk_data_filename) 
-            test1 = read_csv_train_test("data/4_test.csv")
-            test2 = read_csv_train_test("data/5_test.csv")
+            test1 = read_csv_train_test("data/1_test.csv")
+            test2 = read_csv_train_test("data/4_test.csv")
+            test3 = read_csv_train_test("data/5_test.csv")
 
-            train1 = read_csv_train_test("data/4_train.csv")
-            train2 = read_csv_train_test("data/5_train.csv")
+            train1 = read_csv_train_test("data/1_train.csv")
+            train2 = read_csv_train_test("data/4_train.csv")
+            train3 = read_csv_train_test("data/5_train.csv")
 
-            test_sets = [test1, test2]
-            train_sets = [train1, train2]
+            test_sets = [test1, test2, test3]
+            train_sets = [train1, train2, test3]
 
             #for set_num in range(len(test_sets)):
-            for set_num in list([3,4]):
+            set_ind=0
+            for set_num in list([0,3,4]):
                         
 
                 print("TEST SET #" + str(set_num+1) + ":::")
                 print("=================================================================")
-                test_x, test_y = test_sets[set_num-3]
+                test_x, test_y = test_sets[set_ind]
                 
                 setnum_str = str(set_num+1) 
 
@@ -57,7 +60,7 @@ if __name__=="__main__":
                     train_set = 2
                 """
                 
-                train_x, train_y = train_sets[set_num-3]
+                train_x, train_y = train_sets[set_ind]
 
 
                 # THIS IS FOR TEST #1
@@ -194,3 +197,4 @@ if __name__=="__main__":
 
                 """
                 print("=================================================================")
+                set_ind += 1

@@ -324,7 +324,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     # Step 5: Begin training.
     num_wiki_steps = 100000
-    num_cosine_steps = 10
+    num_cosine_steps = 5
     num_wiki_retrain = 500
 
 

@@ -244,7 +244,6 @@ def get_train_test(filename):
   #Yes, this is a horrible way to do this. I'm over it.
   X = []
   y = []
-  """
   word_substitution_set = {
     'orange' : 'orange',
     'apple' : 'apple',
@@ -259,7 +258,6 @@ def get_train_test(filename):
     'potato_chips' : 'potato_chips',
     'coke' : 'coke'
   }
-  """
 
   #answer_word_set = set({'orange', 'apple', 'corn', 'cereal', 'jelly', 'orange_juice', 'grape_juice', 'onion', 'crackers', 'bread', 'potato_chips', 'coke'})
   
@@ -267,6 +265,9 @@ def get_train_test(filename):
       #reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
       reader = csv.reader(csvfile)
       for row in reader:
+
+          #NOTE:::: Comment out the particular code depending on which dataset you're using. Turk=use second block, human=use first.
+          """
 
           primary_items = row[0]
           secondary_items = row[1]
@@ -287,25 +288,26 @@ def get_train_test(filename):
           print(X[-1])
           y.append(answer_label)
           print(y[-1])
-
           """
           row_result = row[27:32]
           answer_label = row_result[4]
-          answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
-
+          print(row_result)
+          try:
+            answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
+          except:
+            continue
           X.append([word_substitution_set[row_result[0]], word_substitution_set[row_result[1]], word_substitution_set[row_result[2]], word_substitution_set[row_result[3]]])
           #Fetch the answer to the most recent instance
           answer_word = X[-1][answer]
           y.append(answer_word)
-          """
 
           """
 
           if not answer_word in answer_word_set:
             sys.exit()
           """
-  """ 
   #This is train/test set #1
+  #25% perfect instances
   X1 = copy.deepcopy(X)
   y1 = copy.deepcopy(y) 
   print("LEN X1", len(X1))
@@ -316,8 +318,10 @@ def get_train_test(filename):
   
   make_train_test_csv(copy.deepcopy(train1), copy.deepcopy(test1), "1") 
   print("MADE SET #1")
+  """ 
 
   #This is train/test set #2
+  #All 3/4
   X1 = copy.deepcopy(X)
   y1 = copy.deepcopy(y) 
   train2 = [None, None]
@@ -335,6 +339,7 @@ def get_train_test(filename):
   print("MADE SET #2")
 
   #This is train/test set #3
+  #All 2/4
   train3 = [None, None]
   train3[0] = copy.deepcopy(train1[0])
   train3[1] = copy.deepcopy(train1[1])
@@ -351,6 +356,7 @@ def get_train_test(filename):
   """
 
   #This is train/test set #4
+  #cousin set
   X1 = copy.deepcopy(X)
   y1 = copy.deepcopy(y) 
   train4, test4 = remove_similars(X1, y1)   
@@ -359,6 +365,7 @@ def get_train_test(filename):
 
 
   #This is train/test set #5
+  #total set
   X1 = copy.deepcopy(X)
   y1 = copy.deepcopy(y) 
   train5, test5 = test_partition(X1,y1, assure_p=False) 
@@ -427,9 +434,9 @@ def get_validation_train_test(filename):
 
 
 if __name__=='__main__':
-    #get_train_test("final_cleaned_results.csv") 
+    get_train_test("final_cleaned_results.csv") 
     # get_validation_train_test("final_cleaned_results.csv")
-    get_train_test("annotations/clean_annotations.csv")
+    #get_train_test("annotations/clean_annotations.csv")
     
     """
     X1, y1 = read_csv_train_test("data/5_train.csv")
