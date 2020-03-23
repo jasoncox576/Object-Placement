@@ -67,8 +67,6 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
 
     else:
         index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
-        print("INDEX!! ", index)
-        print(matrix_priors.get_synset_and_strip(in_word)[1])
         embed = embeddings[index]
         embeds = (embed, None)
         n_embed = embed/ np.linalg.norm(embed)

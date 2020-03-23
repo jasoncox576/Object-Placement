@@ -227,12 +227,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     if not dictionaries:
         data, count, unused_dictionary, reverse_dictionary = build_dataset(
             vocabulary, vocabulary_size)
-        print("*************************************************************")
-        print("Building DICT")
     else:
         data, count, unused_dictionary, reverse_dictionary = dictionaries
-        print("*************************************************************")
-        print("COPYING DICT")
 
 
     del vocabulary  # Hint to reduce memory.
@@ -328,7 +324,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     # Step 5: Begin training.
     num_wiki_steps = 100000
-    num_cosine_steps = 500
+    num_cosine_steps = 10
     num_wiki_retrain = 500
 
 
