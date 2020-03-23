@@ -87,7 +87,7 @@ if __name__=="__main__":
     -alternate between w2v and cosine.
     """
 
-    dictionaries_dir = os.path.join(os.getcwd, "..", "dictionaries")
+    dictionaries_dir = os.path.join(os.getcwd(), "..", "dictionaries")
 
     if train_wiki:
         bigram_dictionaries = get_pretrain_dictionaries(filename)

@@ -9,11 +9,11 @@ if __name__=="__main__":
     bigram_filename= 'fil9_bigram'
     turk_data_filename = 'final_cleaned_results.csv'
     
-    with open(os.path.join(os.getcwd, "..", 'dictionaries'), 'rb') as dict_file:
+    with open(os.path.join(os.getcwd(), "..", 'dictionaries'), 'rb') as dict_file:
         bigram_dictionaries = pickle.load(dict_file)
         bigram_unused_dictionary = bigram_dictionaries[2]
 
-    with open(os.path.join(os.getcwd, "..", "accs_final.csv"), 'w') as accuracies_file:
+    with open(os.path.join(os.getcwd(), "..", "accs_final.csv"), 'w') as accuracies_file:
             results_writer = csv.writer(accuracies_file)
 
             #X, y = get_train_test(turk_data_filename) 

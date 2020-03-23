@@ -437,6 +437,6 @@ def get_validation_train_test(filename):
 if __name__=='__main__':
     
     filename = "final_cleaned_results.csv"
-    filename_dir = os.path.join(os.getcwd, "..", filename)
+    filename_dir = os.path.join(os.getcwd(), "..", filename)
 
     get_train_test(filename_dir) 
