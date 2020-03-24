@@ -1,6 +1,6 @@
 from word2vec_basic import *
 from word2vec_eval import *
-from object_placement_turk import *
+from data_gen import *
 import pickle
 import sys
 import os

@@ -226,7 +226,8 @@ def read_csv_train_test(filename):
     X = []
     y = []
 
-    with open(filename, 'r') as csvfile:
+    filename_dir = os.path.join(os.getcwd(), "..", filename) 
+    with open(filename_dir, 'r') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             X.append(row[:-1])

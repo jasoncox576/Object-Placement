@@ -1,9 +1,9 @@
 import csv
 #import spacy
 #from nltk.corpus import wordnet as wn
-from object_placement_turk import *
+from data_gen import *
 from word2vec_basic import *
-from word2vec_train_tuned import *
+from word2vec_train import *
 import numpy as np
 import matrix_priors
 import random
