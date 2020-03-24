@@ -63,12 +63,15 @@ def process_inputs(X, y):
 
 def read_data(filename):
     """Extract the first file enclosed in a zip file as a list of words."""
+    filename = os.path.relpath(filename)
     filename_dir = os.path.join(os.getcwd(), "..", filename)
     with zipfile.ZipFile(filename) as f:
         data = tf.compat.as_str(f.read(f.namelist()[0])).split()
     return data
 
 def read_data_nonzip(filename):
+
+    filename = os.path.relpath(filename)
     filename_dir = os.path.join(os.getcwd(), "..", filename)
     with open(filename_dir, 'r') as f:
         data = f.read().split()
@@ -197,8 +200,8 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5, data_index_dir="data_index"):
 
-    log_dir = os.path.join(os.path.abspath(os.getcwd()), log_dir)
-    load_dir = os.path.join(os.path.abspath(os.getcwd()), load_dir)
+    log_dir = os.path.join(os.path.abspath(os.getcwd()), "..", log_dir)
+    load_dir = os.path.join(os.path.abspath(os.getcwd()), "..", load_dir)
 
     global data_index
 

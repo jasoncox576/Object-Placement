@@ -39,11 +39,17 @@ def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_
 
 
 
-if __name__=="__main__":
+def main(argv):
+
+    if len(argv) > 1 and argv[1] == "train_wiki":
+        train_wiki=True
+        print("Training Wiki model first")
+    else:
+        train_wiki=False
+        print("Wiki is already trained: retraining on shelving dataset.")
+
     filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
     turk_filename = "final_cleaned_results.csv"
-
-    train_wiki=False
 
 
     train_x = []
@@ -159,3 +165,8 @@ if __name__=="__main__":
         print("Accuracy: ", new_acc)
         optimals.append(optimal_n_epochs)
         num_ind += 1
+
+
+
+if __name__=="__main__":
+    main(sys.argv)
