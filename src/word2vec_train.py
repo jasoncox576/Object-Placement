@@ -49,7 +49,6 @@ def main(argv):
         print("Wiki is already trained: retraining on shelving dataset.")
 
     filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
-    turk_filename = "final_cleaned_results.csv"
 
 
     train_x = []
@@ -114,7 +113,8 @@ def main(argv):
     num_ind = 0
     for num in list([0,3,4]):
         print("TRAINING NEW MODEL:", current_model)
-        current_x, current_y = train_x[num_ind][0], train_y[num_ind][0] 
+        orig_x, orig_y = train_x[num_ind][0], train_y[num_ind][0] 
+        current_x, current_y = copy.deepcopy(orig_x), copy.deepcopy(orig_y)
         optimal_n_epochs = 0
         old_acc = 0.0
         new_acc = 0.0
@@ -140,7 +140,7 @@ def main(argv):
             if cosine_model_initialized:
                 len_old_filtered = len(current_x) 
 
-            current_x, current_y = evaluate_word2vec_cosine(current_x, current_y, embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False, discard_instances=True)
+            current_x, current_y = evaluate_word2vec_cosine(orig_x, orig_y, embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False, discard_instances=True)
             
             filtered_diff = len_old_filtered - len(current_x) 
             print("DIFFERENCE OF FILTERED DATASET: Old:", str(len_old_filtered), "New:", str(len(current_x)))
