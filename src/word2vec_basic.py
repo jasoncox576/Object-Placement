@@ -52,9 +52,13 @@ def process_inputs(X, y):
     set_labels = []
 
     for case in range(len(X)):
-        set_inputs.append(X[case][0])
-        set_inputs[-1] = set_inputs[-1].replace(' ', '_')
-        set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
+        #set_inputs.append(X[case][0])
+        set_inputs.append(X[case])
+        set_inputs[-1] = [x.replace(' ', '_') for x in set_inputs[-1]]
+        #set_inputs[-1] = set_inputs[-1].replace(' ', '_')
+
+        set_inputs[-1] = [re.sub('_\d', '', x) for x in set_inputs[-1]]
+        #set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
 
         set_labels.append(y[case])
         set_labels[-1] = set_labels[-1].replace(' ', '_')
@@ -220,7 +224,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         load_early = False
 
     vocabulary = read_data_nonzip(filename)
-    vocabulary_size = 200000
+    vocabulary_size = 300000
 
 
     # Filling 4 global variables:
@@ -267,7 +271,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                 train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None,2])
             else:
                 train_inputs = tf.compat.v1.placeholder(tf.int32, shape=[None])
+
             train_labels = tf.compat.v1.placeholder(tf.int32, shape=[None, 1])
+            label_onehots = tf.compat.v1.placeholder(tf.int32, shape=[None, vocabulary_size])
             valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
         #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
@@ -331,8 +337,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
     # Step 5: Begin training.
-    num_wiki_steps = 100000
-    num_cosine_steps = 5
+    num_wiki_steps = 50000
+    num_cosine_steps = 15
     num_wiki_retrain = 500
 
 
@@ -387,19 +393,32 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         if retraining:
             ### COSINE LOOP
             inputs, labels = process_inputs(X, y)
+            batch_inputs = np.empty(shape=(len(inputs), 4), dtype=int)
             for i in range(len(inputs)):
-                batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-                batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+                #batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+                new_instance = np.asarray([unused_dictionary.get(x) for x in inputs[i]])
+                #new_instance = [unused_dictionary.get(x) for x in inputs[i]]
+                #batch_inputs[i] = np.concatenate((batch_inputs, new_instance))
+                batch_inputs[i] = new_instance
+                onehot_label = np.zeros(vocabulary_size)
+                onehot_label[unused_dictionary.get(labels[i])] = 1.0
+                #batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+                batch_labels = np.append(batch_labels, onehot_label)
 
-            batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
-
+            #batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+            """
             itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
             y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
+            """
 
 
-            new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            #new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            #logits = tf.keras.layers.Dense(units=embeddings, kernel_initializer=nce_weights)
+            #logits = tf.compat.v1.layers.dense(inputs=embeddings, units=(batch_inputs, vocabulary_size, embedding_size), 
+            logits = tf.matmul(embeddings, nce_weights, transpose_b=True)
+            new_loss = tf.nn.softmax_cross_entropy_with_logits(labels=label_onehots, logits=logits)   
             new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(new_loss)
             session.run(tf.compat.v1.global_variables_initializer())
 
@@ -413,7 +432,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
             for step in xrange(num_cosine_steps):
-                feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
+                feed_dict = {train_inputs: batch_inputs, label_onehots: np.squeeze(batch_labels)}
 
                 _, loss_val = session.run([new_optimizer, new_loss],
                                                            feed_dict=feed_dict)
@@ -426,7 +445,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
                     if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
 
-            """
 
             ###===================================================================================
             ### WIKI LOOP
@@ -450,7 +468,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                         di_f.write(str(data_index)) 
                         di_f.close()
 
-            """
 
 
 
