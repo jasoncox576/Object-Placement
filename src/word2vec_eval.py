@@ -83,7 +83,7 @@ def get_max_performance(X, y):
 
 
 def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
-    
+    '''
     if '_' in in_word:
         w1, w2 = in_word.split("_")
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
@@ -101,12 +101,13 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
         indices = (index1, index2)
 
     else:
-        index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
-        embed = embeddings[index]
-        embeds = (embed, None)
-        n_embed = embed/ np.linalg.norm(embed)
-        n_embeds = (n_embed, None)
-        indices = (index, None)
+    '''
+    index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+    embed = embeddings[index]
+    embeds = (embed, None)
+    n_embed = embed/ np.linalg.norm(embed)
+    n_embeds = (n_embed, None)
+    indices = (index, None)
         
     #n_embed = embed / np.linalg.norm(embed)
     return indices, embeds, n_embeds
@@ -115,6 +116,7 @@ def get_word(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
 
 def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=False):
     #index = dictionary.get(synset_dic.get_synset_and_strip(in_word)[1])
+    '''
     if '_' in in_word:
         w1, w2 = in_word.split("_")
         index1 = dictionary.get(matrix_priors.get_synset_and_strip(w1)[1])
@@ -125,11 +127,12 @@ def get_word_primary(in_word, dictionary, synset_dic, embeddings, bigram_split=F
 
         indices = (index1,index2)
     else:
-        index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
-        embed = embeddings[index]
-        n_embed = embed/np.linalg.norm(embed)
+    '''
+    index = dictionary.get(matrix_priors.get_synset_and_strip(in_word)[1])
+    embed = embeddings[index]
+    n_embed = embed/np.linalg.norm(embed)
 
-        indices = (index, None)
+    indices = (index, None)
 
     return indices, embed, n_embed
 
