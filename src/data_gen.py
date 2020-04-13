@@ -308,6 +308,11 @@ def get_train_test(filename):
           if not answer_word in answer_word_set:
             sys.exit()
           """
+  
+  total_set = (X, y)
+  make_train_test_csv(copy.deepcopy(total_set), copy.deepcopy(total_set), "0")
+    
+
   #This is train/test set #1
   #25% perfect instances
   X1 = copy.deepcopy(X)
@@ -373,65 +378,6 @@ def get_train_test(filename):
   train5, test5 = test_partition(X1,y1, assure_p=False) 
   make_train_test_csv(train5, test5, "5")
   print("MADE SET #5")
-
-def get_validation_train_test(filename):
-
-	X = []
-	y = []
-	word_substitution_set = {
-	'orange' : 'orange',
-	'apple' : 'apple',
-	'corn' : 'corn',
-	'cereal_2' : 'cereal',
-	'jelly' : 'jelly',
-	'orange_juice' : 'orange_juice',
-	'grape_juice' : 'grape_juice',
-	'onion' : 'onion',
-	'crackers' : 'crackers',
-	'bread' : 'bread',
-	'potato_chips' : 'potato_chips',
-	'coke' : 'coke'
-	}
-
-	answer_word_set = set({'orange', 'apple', 'corn', 'cereal', 'jelly', 'orange_juice', 'grape_juice', 'onion', 'crackers', 'bread', 'potato_chips', 'coke'})
-
-
-	with open(filename) as csvfile:
-		reader = csv.reader(csvfile)
-		for row in reader:
-			if reader.line_num == 1:
-				continue
-
-			row_result = row[27:32]
-			answer_label = row_result[4]
-			answer = (["Top", "Middle", "Bottom"].index(answer_label)) + 1
-
-			X.append([word_substitution_set[row_result[0]], word_substitution_set[row_result[1]], word_substitution_set[row_result[2]], word_substitution_set[row_result[3]]])
-			#Fetch the answer to the most recent instance
-			answer_word = X[-1][answer]
-			y.append(answer_word)
-			if not answer_word in answer_word_set:
-				sys.exit()
-
-	X = np.array(X)
-	y = np.array(y)
-	skf = StratifiedKFold(n_splits=3)
-	print(skf.get_n_splits(X, y))
-	print(X)
-    # X = np.array(X)
-	# n = 0
-	for train_index, test_index in skf.split(X, y):
-		# n = n + 1
-		print("TRAIN:", train_index, "TEST:", test_index)
-		X_train, X_test = X[train_index], X[test_index]
-		y_train, y_test = y[train_index], y[test_index]
-		# make_train_test_csv([X_train, y_train], [X_test, y_test], "validation" + n)
-		# print(X_train)
-
-	#for x in X_train:
-	#	print(x)
-
-	make_train_test_csv(copy.deepcopy(train1), copy.deepcopy(test1), "validation") 
 
 
 
