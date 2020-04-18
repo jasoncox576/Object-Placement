@@ -1,5 +1,4 @@
-import csv
-#import spacy
+import csv #import spacy
 #from nltk.corpus import wordnet as wn
 from data_gen import *
 from word2vec_basic import *
@@ -200,6 +199,7 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
         second_choice_index = -1
         third_choice_index = -1
             
+        """
         if (num_choices >= 3):
             #print("SIM VECTOR!")
             #print(len(embedding_sim_vector))
@@ -216,6 +216,7 @@ def evaluate_word2vec_cosine(X, y, embeddings, weights, dictionary, outfile_name
             third_choice += 1
 
         out_file.write("%s, %s \n" % (p, z))
+        """
 
         if(np.argmax(embedding_sim_vector) == X[case][1:].index(y[case])):
             total_correct += 1

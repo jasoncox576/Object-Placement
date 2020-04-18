@@ -28,6 +28,7 @@ import sys
 from tempfile import gettempdir
 import zipfile
 from pathlib import Path
+import cosine_heatmap
 
 import word2vec_eval
 import util
@@ -45,7 +46,6 @@ import re
 
 
 data_index = 0
-
 def process_inputs(X, y):
 
     set_inputs = []
@@ -332,7 +332,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     # Step 5: Begin training.
     num_wiki_steps = 100000
-    num_cosine_steps = 5
+    num_cosine_steps = 100
     num_wiki_retrain = 500
 
 
@@ -426,7 +426,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                     average_loss = 0
                     if save: saver.save(session, os.path.join(log_dir, 'model.ckpt'))
 
-            """
+                cosine_heatmap.grid.append(cosine_heatmap.pairwise_sim_grid(embeddings.eval(), unused_dictionary, cosine_heatmap.object_labels))
+
 
             ###===================================================================================
             ### WIKI LOOP
@@ -449,8 +450,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
                         di_f = open(data_index_dir, 'w')
                         di_f.write(str(data_index)) 
                         di_f.close()
-
-            """
 
 
 

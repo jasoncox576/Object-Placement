@@ -1,6 +1,7 @@
 from word2vec_basic import *
 from word2vec_eval import *
 from data_gen import *
+import cosine_heatmap
 import pickle
 import sys
 import os
@@ -50,7 +51,6 @@ def main(argv):
 
     filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
 
-
     train_x = []
     train_y = []
     validate_x = []
@@ -77,6 +77,7 @@ def main(argv):
         train_x[num_ind].append(train1[0])
         train_y[num_ind].append(train1[1])
         num_ind += 1
+    cosine_heatmap.object_labels = cosine_heatmap.get_object_labels(train_x[0][0])
 
     print("==========================================================")
 
@@ -163,8 +164,12 @@ def main(argv):
 
         print("OPTIMAL NUMBER OF EPOCHS: ", optimal_n_epochs)
         print("Accuracy: ", new_acc)
+        print(len(cosine_heatmap.grid))
+        cosine_heatmap.gen_cosine_heatmap(cosine_heatmap.object_labels, cosine_heatmap.grid) 
+
         optimals.append(optimal_n_epochs)
         num_ind += 1
+        cosine_heatmap.grid = []
 
 
 
