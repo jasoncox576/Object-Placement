@@ -74,6 +74,7 @@ if __name__=="__main__":
 
                 print("TEST #1:::")
                 print("cosine acc: ", cosine_acc)
+                print("cosine train acc: ", cosine_train_acc)
                 #print("output acc: ", output_acc)
                 results_writer.writerow(["TEST #1"])
                 results_writer.writerow([cosine_acc])
@@ -95,6 +96,7 @@ if __name__=="__main__":
                 print('\n')
                 print("TEST #2:::")
                 print("cosine acc: ", cosine_acc)
+                print("cosine train acc: ", cosine_train_acc)
                 #print("output acc: ", output_acc)
                 results_writer.writerow(["TEST #2"])
                 results_writer.writerow([cosine_acc])
