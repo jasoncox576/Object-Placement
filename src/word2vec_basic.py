@@ -43,6 +43,12 @@ from gensim.models.phrases import Phrases, Phraser
 from spacy.lang.en.stop_words import STOP_WORDS
 import re
 
+# get rid of extra logs
+import logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
+logging.getLogger('tensorflow').setLevel(logging.FATAL)
+
+
 
 
 data_index = 0
@@ -51,15 +57,24 @@ def process_inputs(X, y):
     set_inputs = []
     set_labels = []
 
+    neg_labels = []
+
     for case in range(len(X)):
         set_inputs.append(X[case][0])
         set_inputs[-1] = set_inputs[-1].replace(' ', '_')
         set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
 
+        r = random.randint(1, len(X[case]) - 1)
+        neg_labels.append(X[case][r])
+        neg_labels[-1] = neg_labels[-1].replace(' ', '_')
+        neg_labels[-1] = re.sub('_\d', '', neg_labels[-1])
+
+
+
         set_labels.append(y[case])
         set_labels[-1] = set_labels[-1].replace(' ', '_')
         set_labels[-1] = re.sub('_\d', '', set_labels[-1])
-    return set_inputs, set_labels
+    return set_inputs, set_labels, neg_labels
 
 def read_data(filename):
     """Extract the first file enclosed in a zip file as a list of words."""
@@ -198,7 +213,7 @@ def generate_batch(batch_size, num_skips, skip_window, data):
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
 
-def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5, data_index_dir="data_index"):
+def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None, dictionaries=None, get_embeddings=False, bigram_split=False, load=True, save=True, cosine=False, joint_training=False, load_early=True, a=0.5, b=0.5, data_index_dir="data_index", lr=1.0):
 
     log_dir = os.path.join(os.path.abspath(os.getcwd()), "..", log_dir)
     load_dir = os.path.join(os.path.abspath(os.getcwd()), "..", load_dir)
@@ -244,7 +259,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     #print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
     batch_size=8500
-    embedding_size = 128  # Dimension of the embedding vector.
+    #embedding_size = 128  # Dimension of the embedding vector.
+    embedding_size = 4  # Dimension of the embedding vector.
     skip_window = 10# How many words to consider left and right.
     num_skips = 20# How many times to reuse an input to generate a label.
     num_sampled = 64  # Number of negative examples to sample.
@@ -257,6 +273,13 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     valid_window = 100  # Only pick dev samples in the head of the distribution.
     valid_examples = np.random.choice(valid_window, valid_size, replace=False)
     #print(valid_examples)
+
+    config = tf.compat.v1.ConfigProto( device_count = {'GPU':1})
+
+
+    config.graph_options.optimizer_options.global_jit_level = tf.compat.v1.OptimizerOptions.ON_1
+    config.gpu_options.per_process_gpu_memory_fraction = .4
+
 
     graph = tf.Graph()
     with graph.as_default():
@@ -271,8 +294,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
         #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
-        #with tf.device('/job:localhost/replica:0/task:0/device:XLA_GPU:0'):
-        with tf.device('/job:localhost/replica:0/task:0/device:cpu:0'):
+        with tf.device('/device:XLA_GPU:0'):
+        #with tf.device('/job:localhost/replica:0/task:0/device:cpu:0'):
 
             # Look up embeddings for inputs.
             with tf.compat.v1.name_scope('embeddings'):
@@ -331,12 +354,12 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
     # Step 5: Begin training.
-    num_wiki_steps = 100000
-    num_cosine_steps = 100
-    num_wiki_retrain = 500
+    num_wiki_steps = 50000
+    num_cosine_steps = 10
+    num_wiki_retrain =0
 
 
-    with tf.compat.v1.Session(graph=graph) as session:
+    with tf.compat.v1.Session(graph=graph,config=config) as session:
         # Open a writer to write summaries.
         writer = tf.compat.v1.summary.FileWriter(log_dir, session.graph)
 
@@ -386,21 +409,36 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         if retraining:
             ### COSINE LOOP
-            inputs, labels = process_inputs(X, y)
+            inputs, labels, negs = process_inputs(X, y)
+            batch_negs = np.array([], dtype=int)
             for i in range(len(inputs)):
                 batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
                 batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+                batch_negs = np.append(batch_negs, unused_dictionary.get(negs[i]))
 
             batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
 
             itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
+            negsplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
+
             x = tf.nn.embedding_lookup(params=embeddings, ids=itemplaceholder)
             y = tf.nn.embedding_lookup(params=embeddings, ids=nexttoplaceholder)
+            n = tf.nn.embedding_lookup(params=embeddings, ids=negsplaceholder)
 
 
-            new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-            new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(1).minimize(new_loss)
+            #new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            #pos_dist = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            #neg_dist = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(n, axis=1), axis=1)
+            #pos_dist = tf.reduce_sum(tf.square(x - y), 1)
+            #neg_dist = tf.reduce_sum(tf.square(x - n), 1)
+            pos_dist = (tf.norm(x-y))
+            neg_dist = (tf.norm(x-n))
+            
+            margin = .5
+            new_loss = tf.reduce_mean(tf.maximum(pos_dist - neg_dist + margin, 0))
+            new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(lr).minimize(new_loss)
+            #new_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(new_loss)
             session.run(tf.compat.v1.global_variables_initializer())
 
 
@@ -413,7 +451,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
             for step in xrange(num_cosine_steps):
-                feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels)}
+                feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels), negsplaceholder: np.squeeze(batch_negs)}
 
                 _, loss_val = session.run([new_optimizer, new_loss],
                                                            feed_dict=feed_dict)
