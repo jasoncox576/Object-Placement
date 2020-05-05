@@ -60,20 +60,19 @@ def process_inputs(X, y):
     neg_labels = []
 
     for case in range(len(X)):
-        set_inputs.append(X[case][0])
-        set_inputs[-1] = set_inputs[-1].replace(' ', '_')
-        set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
+        for i in range(1,4):
+            set_inputs.append(X[case][0])
+            set_inputs[-1] = set_inputs[-1].replace(' ', '_')
+            set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
 
-        r = random.randint(1, len(X[case]) - 1)
-        neg_labels.append(X[case][r])
-        neg_labels[-1] = neg_labels[-1].replace(' ', '_')
-        neg_labels[-1] = re.sub('_\d', '', neg_labels[-1])
+            #r = random.randint(1, len(X[case]) - 1)
+            neg_labels.append(X[case][i])
+            neg_labels[-1] = neg_labels[-1].replace(' ', '_')
+            neg_labels[-1] = re.sub('_\d', '', neg_labels[-1])
 
-
-
-        set_labels.append(y[case])
-        set_labels[-1] = set_labels[-1].replace(' ', '_')
-        set_labels[-1] = re.sub('_\d', '', set_labels[-1])
+            set_labels.append(y[case])
+            set_labels[-1] = set_labels[-1].replace(' ', '_')
+            set_labels[-1] = re.sub('_\d', '', set_labels[-1])
     return set_inputs, set_labels, neg_labels
 
 def read_data(filename):
@@ -428,14 +427,14 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
             #new_loss = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-            #pos_dist = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
-            #neg_dist = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(n, axis=1), axis=1)
+            pos_dist = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(y, axis=1), axis=1)
+            neg_dist = tf.compat.v1.losses.cosine_distance(tf.math.l2_normalize(x, axis=1), tf.math.l2_normalize(n, axis=1), axis=1)
             #pos_dist = tf.reduce_sum(tf.square(x - y), 1)
             #neg_dist = tf.reduce_sum(tf.square(x - n), 1)
-            pos_dist = (tf.norm(x-y))
-            neg_dist = (tf.norm(x-n))
+            #pos_dist = (tf.norm(x-y))
+            #neg_dist = (tf.norm(x-n))
             
-            margin = .5
+            margin = .05
             new_loss = tf.reduce_mean(tf.maximum(pos_dist - neg_dist + margin, 0))
             new_optimizer = tf.compat.v1.train.GradientDescentOptimizer(lr).minimize(new_loss)
             #new_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(new_loss)
