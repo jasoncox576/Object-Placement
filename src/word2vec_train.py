@@ -125,7 +125,8 @@ def main(argv):
         while True:
             if new_acc <= old_acc:
                 n_equals += 1
-                if n_equals > 4:
+                #if n_equals > 4:
+                if n_equals > 1:
                     break
             else:
                 n_equals = 0
@@ -140,7 +141,7 @@ def main(argv):
             len_old_filtered = 0
             if cosine_model_initialized:
                 len_old_filtered = len(current_x) 
-                #current_x, current_y = evaluate_word2vec_cosine(orig_x, orig_y, embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False, discard_instances=True)
+                current_x, current_y = evaluate_word2vec_cosine(orig_x, orig_y, embeddings, weights, bigram_unused_dictionary, "results.csv", bigram_split=False, discard_instances=True)
             
             filtered_diff = len_old_filtered - len(current_x) 
             print("DIFFERENCE OF FILTERED DATASET: Old:", str(len_old_filtered), "New:", str(len(current_x)))
