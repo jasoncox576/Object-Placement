@@ -122,6 +122,7 @@ def main(argv):
         load=False
         n_equals = 0
         cosine_model_initialized=False
+        iterations = 0
         while True:
             if new_acc <= old_acc:
                 n_equals += 1
@@ -158,19 +159,21 @@ def main(argv):
             print("OLD ACC:", old_acc)
             print("NEW ACC:", new_acc)
 
+            iterations += 10
+            cosine_heatmap.gen_cosine_heatmap(cosine_heatmap.object_labels, cosine_heatmap.grid, "set_{}_iter{}".format(num+1, iterations))
+            cosine_heatmap.grid = []
+
 
         optimal_n_epochs -= 2000
 
         print("OPTIMAL NUMBER OF EPOCHS: ", optimal_n_epochs)
         print("Accuracy: ", new_acc)
-        print('heatmap len', len(cosine_heatmap.grid))
+        #print('heatmap len', len(cosine_heatmap.grid))
         print('*******************************************************************')
         print()
-        cosine_heatmap.gen_cosine_heatmap(cosine_heatmap.object_labels, cosine_heatmap.grid) 
 
         optimals.append(optimal_n_epochs)
         num_ind += 1
-        cosine_heatmap.grid = []
 
 
 

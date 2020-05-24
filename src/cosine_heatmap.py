@@ -50,7 +50,7 @@ def get_object_labels(X):
     return labels
 
 
-def gen_cosine_heatmap(object_labels, data):
+def gen_cosine_heatmap(object_labels, data, save_name=None):
     """
     Generates a heatmap of the cosine values
     over a time domain for debugging purposes.
@@ -76,8 +76,13 @@ def gen_cosine_heatmap(object_labels, data):
                  rotation_mode="anchor")
 
 
+
     fig.tight_layout()
-    plt.show(block=False)
+
+    if save_name == None:
+        plt.show(block=False)
+    else:
+        plt.savefig('../heatmaps/'+save_name+'.png')
 
     # draw some data in loop
     for i in range(len(data)):
