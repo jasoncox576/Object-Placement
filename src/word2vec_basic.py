@@ -60,19 +60,25 @@ def process_inputs(X, y):
     neg_labels = []
 
     for case in range(len(X)):
-        for i in range(1,4):
+        #for i in range(1,4):
+        for i in range(1,len(X[case])):
+            if X[case][i] == y[case] and len(X[case]) > 2: continue
             set_inputs.append(X[case][0])
             set_inputs[-1] = set_inputs[-1].replace(' ', '_')
             set_inputs[-1] = re.sub('_\d', '', set_inputs[-1])
 
             #r = random.randint(1, len(X[case]) - 1)
-            neg_labels.append(X[case][i])
-            neg_labels[-1] = neg_labels[-1].replace(' ', '_')
-            neg_labels[-1] = re.sub('_\d', '', neg_labels[-1])
+            if len(X[case]) > 2:
+                neg_labels.append(X[case][i])
+                neg_labels[-1] = neg_labels[-1].replace(' ', '_')
+                neg_labels[-1] = re.sub('_\d', '', neg_labels[-1])
+            else:
+                neg_labels.append(None)
 
             set_labels.append(y[case])
             set_labels[-1] = set_labels[-1].replace(' ', '_')
             set_labels[-1] = re.sub('_\d', '', set_labels[-1])
+
     return set_inputs, set_labels, neg_labels
 
 def read_data(filename):
@@ -94,7 +100,7 @@ def read_data_nonzip(filename):
 
 def build_dataset(words, n_words):
     """Process raw inputs into a dataset."""
-    count = [['UNK', -1]]
+    count = [['UNK', -2], ['eof', -1]]
     count.extend(collections.Counter(words).most_common(n_words - 1))
     dictionary = dict()
     for word, _ in count:
@@ -175,13 +181,10 @@ def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_diction
     return modded_batch_inputs, modded_batch_labels
 
 
-
-
-
-
-
 # Step 3: Function to generate a training batch for the skip-gram model.
-def generate_batch(batch_size, num_skips, skip_window, data):
+
+def generate_batch(batch_size, num_skips, skip_window, data, dictionary, reverse_dictionary):
+
     global data_index
     assert batch_size % num_skips == 0
     assert num_skips <= 2 * skip_window
@@ -191,11 +194,39 @@ def generate_batch(batch_size, num_skips, skip_window, data):
     buffer = collections.deque(maxlen=span)  # pylint: disable=redefined-builtin
     if data_index + span > len(data):
         data_index = 0
+
+
     buffer.extend(data[data_index:data_index + span])
     data_index += span
+    eof_count=0
+    for word in data[data_index:data_index+batch_size]:
+        if word == dictionary['eof']:
+            eof_count += 1
+    
     for i in range(batch_size // num_skips):
-        context_words = [w for w in range(span) if w != skip_window]
-        words_to_use = random.sample(context_words, num_skips)
+        if data[data_index-skip_window] == dictionary['eof']: 
+            buffer.append(data[data_index])
+            data_index += 1
+
+        #used to determine if there is an 'end of recipe' marker. If there is, obeys the boundary.
+        try:
+            eof_idx = data[data_index:data_index+span].index(dictionary['eof']) 
+            if eof_idx > skip_window:
+                context_words = [w for w in range(span) if w != skip_window and w < eof_idx]
+            else: # eof_idx < skip_window
+                context_words = [w for w in range(span) if w != skip_window and w > eof_idx]
+            #TODO
+            #if there is an 'eof', just re-use samples in the vicinity to fill up the batch..
+            #will this introduce issue of bias?
+            #it seems like it shouldn't be an issue given that these cases are a small percentage.
+            words_to_use = []
+            while len(words_to_use) < num_skips:
+                words_to_use.extend(random.sample(context_words, min(20-len(words_to_use), len(context_words))))
+
+        except ValueError:
+            context_words = [w for w in range(span) if w != skip_window]
+            words_to_use = random.sample(context_words, num_skips)
+
         for j, context_word in enumerate(words_to_use):
             batch[i * num_skips + j] = buffer[skip_window]
             labels[i * num_skips + j, 0] = buffer[context_word]
@@ -208,6 +239,7 @@ def generate_batch(batch_size, num_skips, skip_window, data):
     # Backtrack a little bit to avoid skipping words in the end of a batch
     data_index = (data_index + len(data) - span) % len(data)
     return batch, labels
+
 
 
 #NOTE:: MUST ALTERNATE LOSS FUNCTION BASED ON WHAT RETRAINING FOR
@@ -235,6 +267,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     vocabulary = read_data_nonzip(filename)
     vocabulary_size = 200000
+    #vocabulary_size = 22985
 
 
     # Filling 4 global variables:
@@ -257,9 +290,10 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     #print('Most common words (+UNK)', count[:5])
     #print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
-    batch_size=8500
+    batch_size=500
     #embedding_size = 128  # Dimension of the embedding vector.
-    embedding_size = 4  # Dimension of the embedding vector.
+    #embedding_size = 4  # Dimension of the embedding vector.
+    embedding_size = 24# Dimension of the embedding vector.
     skip_window = 10# How many words to consider left and right.
     num_skips = 20# How many times to reuse an input to generate a label.
     num_sampled = 64  # Number of negative examples to sample.
@@ -354,8 +388,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
     # Step 5: Begin training.
     num_wiki_steps = 50000
-    num_cosine_steps = 10
-    num_wiki_retrain =0
+    num_cosine_steps = 100
+    num_wiki_retrain =1000
 
 
     with tf.compat.v1.Session(graph=graph,config=config) as session:
@@ -385,7 +419,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         ### TRAIN ORIGINAL WIKI
         if not retraining:
             for step in xrange(num_wiki_steps):
-                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data, unused_dictionary, reverse_dictionary)
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
                 run_metadata = tf.compat.v1.RunMetadata()
                 _, summary, loss_val = session.run([optimizer, merged, loss],
@@ -413,7 +447,11 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             for i in range(len(inputs)):
                 batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
                 batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
-                batch_negs = np.append(batch_negs, unused_dictionary.get(negs[i]))
+                if negs[i] == None:
+                    batch_negs = np.append(batch_negs, 0) 
+                else:
+                    batch_negs = np.append(batch_negs, unused_dictionary.get(negs[i]))
+
 
             batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
 
