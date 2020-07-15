@@ -49,7 +49,7 @@ def main(argv):
         train_wiki=False
         print("Wiki is already trained: retraining on shelving dataset.")
 
-    filename = os.path.join(os.path.abspath(os.getcwd()),'fil9_bigram')
+    filename = os.path.join(os.path.abspath(os.getcwd()),'recipe_corpus.txt')
 
     train_x = []
     train_y = []
@@ -58,8 +58,8 @@ def main(argv):
     optimals = []
 
     num_ind = 0
-    for num in list([0,3,4]):
-        train1 = read_csv_train_test("data/"+str(num+1)+"_train.csv")
+    for num in list([3,4]):
+        train1 = read_csv_train_test("data_human/"+str(num+1)+"_train.csv")
         validate_x.append([])
         validate_y.append([])
         train_x.append([])
@@ -87,7 +87,7 @@ def main(argv):
     """
     Training Procedure:
     ------------------
-    -Train a w2v model from wikipedia.
+    -Train a w2v model from recipes corpus.
     -Grab the embeddings, figure out how well they do
     -Train cosine off of that & keep going.
     -alternate between w2v and cosine.
@@ -112,7 +112,7 @@ def main(argv):
 
 
     num_ind = 0
-    for num in list([0,3,4]):
+    for num in list([3,4]):
         print("TRAINING NEW MODEL:", current_model)
         orig_x, orig_y = train_x[num_ind][0], train_y[num_ind][0] 
         current_x, current_y = copy.deepcopy(orig_x), copy.deepcopy(orig_y)

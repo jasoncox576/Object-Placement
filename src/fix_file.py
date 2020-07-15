@@ -1,4 +1,4 @@
-from tensorflow.contrib.tensorboard.plugins import projector
+#from tensorflow.contrib.tensorboard.plugins import projector
 from gensim.models.phrases import Phrases, Phraser
 from spacy.lang.en.stop_words import STOP_WORDS
 import re
@@ -63,11 +63,11 @@ def sentences_to_bi_grams(n_grams, input_file_name, output_file_name):
     print("TOTAL SENTENCES: " + str(sentence_counter))
 
 
-with open('text8', 'r') as filename:
+with open('recipe_corpus.txt', 'r') as filename:
 
   sentences = get_sentences(filename)
   phraser = build_phrases(sentences)
-  filename = os.path.join(os.path.abspath(os.getcwd()), "text8")
-  out_filename = os.path.join(os.path.abspath(os.getcwd()), 'fil9_bigram')
+  filename = os.path.join(os.path.abspath(os.getcwd()), "recipe_corpus.txt")
+  out_filename = os.path.join(os.path.abspath(os.getcwd()), 'clean_recipe_corpus')
   sentences_to_bi_grams(phraser, filename, out_filename) 
 
