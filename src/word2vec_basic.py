@@ -52,6 +52,8 @@ logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 
 data_index = 0
+vocabulary_size = 10000 
+
 def process_inputs(X, y):
 
     set_inputs = []
@@ -100,8 +102,10 @@ def read_data_nonzip(filename):
 
 def build_dataset(words, n_words):
     """Process raw inputs into a dataset."""
-    count = [['UNK', -2], ['eof', -1]]
+    #count = [['UNK', -2], ['eof', -1]]
+    count = [['UNK', -1]]
     count.extend(collections.Counter(words).most_common(n_words - 1))
+    #count.extend(collections.Counter(words).most_common(n_words))
     dictionary = dict()
     for word, _ in count:
         dictionary[word] = len(dictionary)
@@ -114,10 +118,12 @@ def build_dataset(words, n_words):
         data.append(index)
     count[0][1] = unk_count
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    #print("Val", dictionary['eof'])
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     return data, count, dictionary, reversed_dictionary
 
 def get_pretrain_dictionaries(filename):
-    n_words = 200000
+    n_words = vocabulary_size 
     data = read_data_nonzip(filename)
     return build_dataset(data, n_words)
 
@@ -266,8 +272,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         load_early = False
 
     vocabulary = read_data_nonzip(filename)
-    vocabulary_size = 200000
-    #vocabulary_size = 22985
+    #vocabulary_size = 200000
 
 
     # Filling 4 global variables:
@@ -326,8 +331,8 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             train_labels = tf.compat.v1.placeholder(tf.int32, shape=[None, 1])
             valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-        #with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
-        with tf.device('/device:XLA_GPU:0'):
+        with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
+        #with tf.device('/device:XLA_GPU:0'):
         #with tf.device('/job:localhost/replica:0/task:0/device:cpu:0'):
 
             # Look up embeddings for inputs.
@@ -532,6 +537,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         # Write corresponding labels for the embeddings.
         with open(log_dir + '/metadata.tsv', 'w') as f:
+            print(len(reverse_dictionary))
             for i in xrange(vocabulary_size):
                 f.write(reverse_dictionary[i] + '\n')
 
