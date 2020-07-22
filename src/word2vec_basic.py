@@ -52,7 +52,7 @@ logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 
 data_index = 0
-vocabulary_size = 10000 
+vocabulary_size = 97676 
 
 def process_inputs(X, y):
 
@@ -118,8 +118,6 @@ def build_dataset(words, n_words):
         data.append(index)
     count[0][1] = unk_count
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-    #print("Val", dictionary['eof'])
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     return data, count, dictionary, reversed_dictionary
 
 def get_pretrain_dictionaries(filename):
@@ -296,9 +294,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     #print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
     batch_size=500
-    #embedding_size = 128  # Dimension of the embedding vector.
+    embedding_size = 64 # Dimension of the embedding vector.
     #embedding_size = 4  # Dimension of the embedding vector.
-    embedding_size = 24# Dimension of the embedding vector.
+    #embedding_size = 24# Dimension of the embedding vector.
     skip_window = 10# How many words to consider left and right.
     num_skips = 20# How many times to reuse an input to generate a label.
     num_sampled = 64  # Number of negative examples to sample.
@@ -392,7 +390,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
     # Step 5: Begin training.
-    num_wiki_steps = 50000
+    num_wiki_steps = 100000
     num_cosine_steps = 100
     num_wiki_retrain =1000
 
@@ -512,7 +510,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             ###===================================================================================
             ### WIKI LOOP
             for step in xrange(num_wiki_retrain):
-                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
+                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data, unused_dictionary, reverse_dictionary)
                 run_metadata = tf.compat.v1.RunMetadata()
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
                 _, summary, loss_val = session.run([optimizer, merged, loss],
