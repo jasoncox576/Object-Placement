@@ -24,12 +24,14 @@ Train: Same as before, still 75% of 4/4 cases.
 Test: All of the 2/4 agreement cases. Because there's so much disagreement among annotators, expect significantly hindered accuracy of no fault of the model.
 
 4:  
+Train: Remove all instances that have a 'similar' item anywhere in them.  
+Test: Put all of those instances that had a 'similar' item in the test set.
+
+5:
 Train: 75% of everything, randomly sampled  
 Test: 25% of everything, randomly sampled
 
-5:  
-Train: Remove all instances that have a 'similar' item anywhere in them.  
-Test: Put all of those instances that had a 'similar' item in the test set.
+
 
 **Training and Evaluation**
 
