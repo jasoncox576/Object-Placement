@@ -52,7 +52,7 @@ logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 
 data_index = 0
-vocabulary_size = 97676 
+vocabulary_size = 11004 
 
 def process_inputs(X, y):
 
