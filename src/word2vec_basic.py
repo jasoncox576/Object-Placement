@@ -118,6 +118,8 @@ def build_dataset(words, n_words):
         data.append(index)
     count[0][1] = unk_count
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    #print("Val", dictionary['eof'])
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     return data, count, dictionary, reversed_dictionary
 
 def get_pretrain_dictionaries(filename):
@@ -141,6 +143,10 @@ def bigram_embedding_lookup(embeddings, train_inputs, reverse_dictionary):
 
 
 def split_bigrams(batch_inputs, batch_labels, unused_dictionary, reverse_dictionary):
+	# 2-words (orange_soda)
+	# not one token; split it up into 2 tokens; average those words
+	# not done anymore
+
     modded_batch_inputs = []
     modded_batch_labels = []
 
@@ -294,9 +300,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
     #print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
 
     batch_size=500
-    embedding_size = 64 # Dimension of the embedding vector.
+    #embedding_size = 128  # Dimension of the embedding vector.
     #embedding_size = 4  # Dimension of the embedding vector.
-    #embedding_size = 24# Dimension of the embedding vector.
+    embedding_size = 24# Dimension of the embedding vector.
     skip_window = 10# How many words to consider left and right.
     num_skips = 20# How many times to reuse an input to generate a label.
     num_sampled = 64  # Number of negative examples to sample.
@@ -329,9 +335,9 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             train_labels = tf.compat.v1.placeholder(tf.int32, shape=[None, 1])
             valid_dataset = tf.constant(valid_examples, dtype=tf.int32)
 
-        with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
+        # with tf.device('/job:localhost/replica:0/task:0/device:XLA_CPU:0'):
         #with tf.device('/device:XLA_GPU:0'):
-        #with tf.device('/job:localhost/replica:0/task:0/device:cpu:0'):
+        with tf.device('/job:localhost/replica:0/task:0/device:cpu:0'):
 
             # Look up embeddings for inputs.
             with tf.compat.v1.name_scope('embeddings'):
@@ -390,7 +396,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
     # Step 5: Begin training.
-    num_wiki_steps = 100000
+    num_wiki_steps = 50000
     num_cosine_steps = 100
     num_wiki_retrain =1000
 
@@ -446,17 +452,27 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
         if retraining:
             ### COSINE LOOP
             inputs, labels, negs = process_inputs(X, y)
-            batch_negs = np.array([], dtype=int)
-            for i in range(len(inputs)):
-                batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
-                batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
-                if negs[i] == None:
-                    batch_negs = np.append(batch_negs, 0) 
-                else:
-                    batch_negs = np.append(batch_negs, unused_dictionary.get(negs[i]))
+
+            # print('inputs: ', inputs)
+            # print('labels: ', labels)
+            # print('negs: ', negs)
+            # print('unused_dictionary: ', unused_dictionary)
+            # print('len(inputs): ', len(inputs))
+            # batch_nums = np.random.choice(len(inputs), batch_size, replace=False)
+
+            ### MOVED THIS CODE BELOW LINE 509
+            # batch_negs = np.array([], dtype=int)
+            # for i in range(len(inputs)):
+            #     batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+            #     batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+            #     if negs[i] == None:
+            #         batch_negs = np.append(batch_negs, 0) 
+            #     else:
+            #         batch_negs = np.append(batch_negs, unused_dictionary.get(negs[i]))
 
 
-            batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+            # batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+            ###
 
             itemplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
             nexttoplaceholder = tf.compat.v1.placeholder(tf.int32, [None])
@@ -491,6 +507,37 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
 
             for step in xrange(num_cosine_steps):
+                ### WHAT I HAVE ADDED SO FAR:
+
+
+                # print(unused_dictionary)
+
+                batch_nums = np.random.choice(len(inputs), batch_size, replace=False) # for batching a random sample
+
+                batch_negs = np.array([], dtype=int)
+                for i in batch_nums:
+                    # print('i: ', i)
+                    # print('inputs[i]: ', inputs[i])
+                    # print('unused_dictionary.get(inputs[i]): ', unused_dictionary.get(inputs[i]))
+                    # print('labels[i]: ', labels[i])
+                    # print('unused_dictionary.get(labels[i]): ', unused_dictionary.get(labels[i]))
+                    # print()
+                    batch_inputs = np.append(batch_inputs, unused_dictionary.get(inputs[i]))
+                    batch_labels = np.append(batch_labels, unused_dictionary.get(labels[i]))
+                    if negs[i] == None:
+                        batch_negs = np.append(batch_negs, 0) 
+                    else:
+                        batch_negs = np.append(batch_negs, unused_dictionary.get(negs[i]))
+
+
+                batch_labels = np.reshape(batch_labels, (len(batch_labels), 1))
+                # print('batch_inputs: ', batch_inputs)
+                # print('batch_labels: ', batch_labels)
+                # print('batch_negs: ', batch_negs)
+
+
+                ###
+
                 feed_dict = {itemplaceholder: batch_inputs, nexttoplaceholder: np.squeeze(batch_labels), negsplaceholder: np.squeeze(batch_negs)}
 
                 _, loss_val = session.run([new_optimizer, new_loss],
@@ -510,7 +557,7 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
             ###===================================================================================
             ### WIKI LOOP
             for step in xrange(num_wiki_retrain):
-                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data, unused_dictionary, reverse_dictionary)
+                batch_inputs, batch_labels = generate_batch(batch_size, num_skips, skip_window, data)
                 run_metadata = tf.compat.v1.RunMetadata()
                 feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
                 _, summary, loss_val = session.run([optimizer, merged, loss],
@@ -535,7 +582,6 @@ def word2vec_turk(log_dir, load_dir, filename, retraining=False, X=None, y=None,
 
         # Write corresponding labels for the embeddings.
         with open(log_dir + '/metadata.tsv', 'w') as f:
-            print(len(reverse_dictionary))
             for i in xrange(vocabulary_size):
                 f.write(reverse_dictionary[i] + '\n')
 
