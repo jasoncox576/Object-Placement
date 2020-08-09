@@ -108,9 +108,8 @@ def main(argv):
             bigram_dictionaries = pickle.load(dict_file)
             bigram_unused_dictionary = bigram_dictionaries[2]
         embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
-        print()
-        print()
-        print()
+
+        ### GENERATING HEATMAP OF COSINE SIMILARITIES BETWEEN 50 FOOD WORDS (AFTER TRAINING ON THE TEXT CORPUS)
         # print(wn.synsets('food', pos=wn.NOUN))
         # solid_food = wn.synset('food.n.02')
         # solid_food_hypos = solid_food.hyponyms()
@@ -118,11 +117,8 @@ def main(argv):
         #     print(food.lemmas()[0].name())
         object_labels = ["chocolate", "coconut", "loaf", "bread", "pasta", "cake", "pastry", "crackers", "muffin", "cereal", "muesli", "liquor", "sake", "wine", "cider", "brew", "beer", "aperitif", "coffee", "cocoa", "water", "juice", "lime_juice", "grape_juice", "orange_juice", "cola", "coke", "gingerale", "apple", "apricot", "avocado", "banana", "kiwi", "mango", "orange", "tomato", "artichoke", "corn", "cucumber", "onion", "squash", "chips", "potato_chips", "jelly", "peanut_butter", "ketchup", "chilisauce", "mustard", "salsa", "soy_sauce"]
         cosine_matrix = cosine_heatmap.pairwise_sim_grid(embeddings, bigram_unused_dictionary, object_labels)
-        cosine_heatmap.gen_cosine_heatmap(object_labels, cosine_matrix, "heatmap")
-        print()
-        print()
-        print()
-        end
+        cosine_heatmap.gen_cosine_heatmap(object_labels, [cosine_matrix], "heatmap")
+        ###
 
     current_model = models[1]
 
