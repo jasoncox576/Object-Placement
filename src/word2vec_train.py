@@ -116,7 +116,7 @@ def main(argv):
         # solid_food_hypos = solid_food.hyponyms()
         # for food in solid_food_hypos: 
         #     print(food.lemmas()[0].name())
-        object_labels = ["chocolate", "coconut", "loaf", "bread", "pasta", "cake", "pastry", "cracker", "muffin", "cereal", "muesli", "liquor", "sake", "wine", "cider", "brew", "beer", "aperitif", "coffee", "cocoa", "water", "juice", "lime_juice", "grape_juice", "orange_juice", "cola", "coke", "gingerale", "apple", "apricot", "avocado", "banana", "kiwi", "mango", "orange", "tomato", "artichoke", "corn", "cucumber", "onion", "squash", "chips", "potato_chips", "jelly", "peanut_butter", "ketchup", "chilisauce", "mustard", "salsa", "soy_sauce"]
+        object_labels = ["chocolate", "coconut", "loaf", "bread", "pasta", "cake", "pastry", "crackers", "muffin", "cereal", "muesli", "liquor", "sake", "wine", "cider", "brew", "beer", "aperitif", "coffee", "cocoa", "water", "juice", "lime_juice", "grape_juice", "orange_juice", "cola", "coke", "gingerale", "apple", "apricot", "avocado", "banana", "kiwi", "mango", "orange", "tomato", "artichoke", "corn", "cucumber", "onion", "squash", "chips", "potato_chips", "jelly", "peanut_butter", "ketchup", "chilisauce", "mustard", "salsa", "soy_sauce"]
         cosine_matrix = cosine_heatmap.pairwise_sim_grid(embeddings, bigram_unused_dictionary, object_labels)
         cosine_heatmap.gen_cosine_heatmap(object_labels, cosine_matrix, "heatmap")
         print()
