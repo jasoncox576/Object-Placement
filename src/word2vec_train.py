@@ -1,6 +1,7 @@
 from word2vec_basic import *
 from word2vec_eval import *
 from data_gen import *
+from nltk.corpus import wordnet as wn
 import cosine_heatmap
 import pickle
 import sys
@@ -107,6 +108,21 @@ def main(argv):
             bigram_dictionaries = pickle.load(dict_file)
             bigram_unused_dictionary = bigram_dictionaries[2]
         embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
+        print()
+        print()
+        print()
+        # print(wn.synsets('food', pos=wn.NOUN))
+        # solid_food = wn.synset('food.n.02')
+        # solid_food_hypos = solid_food.hyponyms()
+        # for food in solid_food_hypos: 
+        #     print(food.lemmas()[0].name())
+        object_labels = ["chocolate", "coconut", "loaf", "bread", "pasta", "cake", "pastry", "cracker", "muffin", "cereal", "muesli", "liquor", "sake", "wine", "cider", "brew", "beer", "aperitif", "coffee", "cocoa", "water", "juice", "lime_juice", "grape_juice", "orange_juice", "cola", "coke", "gingerale", "apple", "apricot", "avocado", "banana", "kiwi", "mango", "orange", "tomato", "artichoke", "corn", "cucumber", "onion", "squash", "chips", "potato_chips", "jelly", "peanut_butter", "ketchup", "chilisauce", "mustard", "salsa", "soy_sauce"]
+        cosine_matrix = cosine_heatmap.pairwise_sim_grid(embeddings, bigram_unused_dictionary, object_labels)
+        cosine_heatmap.gen_cosine_heatmap(object_labels, cosine_matrix, "heatmap")
+        print()
+        print()
+        print()
+        end
 
     current_model = models[1]
 
