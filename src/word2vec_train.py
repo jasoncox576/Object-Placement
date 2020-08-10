@@ -39,7 +39,15 @@ def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_
             temp_load_dir = "wiki_output"
             return retrain_model_and_get_embeddings(X, y, dictionaries, filename, cosine=True, save_dir=directory, load_dir=temp_load_dir, bigram_split=False, joint_training=True)
 
+def print_similarities(object_labels, cosine_matrix):
+    cosine_similarities_dict = {}
+    for i in range(len(cosine_matrix)):
+    	for j in range(i):
+    		cosine_similarities_dict[object_labels[i] + " and " + object_labels[j]] = cosine_matrix[i][j]
 
+    cosine_similarities_dict = sorted(cosine_similarities_dict.items(), key=lambda x: x[1], reverse=True)
+    for i in cosine_similarities_dict:
+    	print("{}: {}".format(i[0], i[1]))
 
 def main(argv):
 
@@ -109,7 +117,8 @@ def main(argv):
             bigram_unused_dictionary = bigram_dictionaries[2]
         embeddings, weights = get_embeddings("wiki_output", filename, bigram_dictionaries) 
 
-        ### GENERATING HEATMAP OF COSINE SIMILARITIES BETWEEN 50 FOOD WORDS (AFTER TRAINING ON THE TEXT CORPUS)
+        ### GENERATING HEATMAP OF COSINE SIMILARITIES BETWEEN 50 FOOD WORDS (AFTER TRAINING ON THE RECIPE CORPUS)
+
         # print(wn.synsets('food', pos=wn.NOUN))
         # solid_food = wn.synset('food.n.02')
         # solid_food_hypos = solid_food.hyponyms()
@@ -117,7 +126,12 @@ def main(argv):
         #     print(food.lemmas()[0].name())
         object_labels = ["chocolate", "coconut", "loaf", "bread", "pasta", "cake", "pastry", "crackers", "muffin", "cereal", "muesli", "liquor", "sake", "wine", "cider", "brew", "beer", "aperitif", "coffee", "cocoa", "water", "juice", "lime_juice", "grape_juice", "orange_juice", "cola", "coke", "gingerale", "apple", "apricot", "avocado", "banana", "kiwi", "mango", "orange", "tomato", "artichoke", "corn", "cucumber", "onion", "squash", "chips", "potato_chips", "jelly", "peanut_butter", "ketchup", "chilisauce", "mustard", "salsa", "soy_sauce"]
         cosine_matrix = cosine_heatmap.pairwise_sim_grid(embeddings, bigram_unused_dictionary, object_labels)
+
+        # PRINTS A LIST, IN DESCENDING ORDER, OF PAIRWISE COSINE SIMILARITIES OF ALL OBJECT PAIRS
+        print_similarities(object_labels, cosine_matrix)
+
         cosine_heatmap.gen_cosine_heatmap(object_labels, [cosine_matrix], "heatmap")
+
         ###
 
     current_model = models[1]
