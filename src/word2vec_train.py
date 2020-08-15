@@ -2,6 +2,7 @@ from word2vec_basic import *
 from word2vec_eval import *
 from data_gen import *
 from nltk.corpus import wordnet as wn
+import pandas as pd
 import cosine_heatmap
 import pickle
 import sys
@@ -40,14 +41,35 @@ def train_by_name(X, y, dictionaries, filename, training_set, model, load, load_
             return retrain_model_and_get_embeddings(X, y, dictionaries, filename, cosine=True, save_dir=directory, load_dir=temp_load_dir, bigram_split=False, joint_training=True)
 
 def print_similarities(object_labels, cosine_matrix):
-    cosine_similarities_dict = {}
-    for i in range(len(cosine_matrix)):
-    	for j in range(i):
-    		cosine_similarities_dict[object_labels[i] + " and " + object_labels[j]] = cosine_matrix[i][j]
 
-    cosine_similarities_dict = sorted(cosine_similarities_dict.items(), key=lambda x: x[1], reverse=True)
-    for i in cosine_similarities_dict:
+	# PRINTS A LIST, IN DESCENDING ORDER, OF PAIRWISE COSINE SIMILARITIES OF ALL OBJECT PAIRS
+    size = len(cosine_matrix)
+    cosine_similarities = {}
+    for i in range(size):
+    	for j in range(i):
+    		cosine_similarities[object_labels[i] + " and " + object_labels[j]] = cosine_matrix[i][j]
+
+    cosine_similarities = sorted(cosine_similarities.items(), key=lambda x: x[1], reverse=True)
+    for i in cosine_similarities:
     	print("{}: {}".format(i[0], i[1]))
+
+    # GENERATES A TABLE OF OBJECT PAIRINGS AND THEIR RESPECTIVE COSINE SIMILARITIES--FOR EACH OBJECT
+    # THE COSINE SIMILARITIES ARE IN DESCENDING ORDER
+    cosine_similarities_table = pd.DataFrame(columns=object_labels)
+    for i in range(size):
+    	cosine_similarities = {}
+    	curr_food_item = object_labels[i]
+    	for j in range(size):
+    		if (curr_food_item != object_labels[j]):
+    			cosine_similarities[object_labels[j]] = cosine_matrix[i][j]
+
+    	cosine_similarities = sorted(cosine_similarities.items(), key=lambda x: x[1], reverse=True)
+    	for j in range(len(cosine_similarities)):
+    		cosine_similarities_table.loc[j, curr_food_item] = "{}: {}".format(cosine_similarities[j][0], cosine_similarities[j][1])
+
+    # print(cosine_similarities_table)
+    cosine_similarities_table.to_csv(path_or_buf="../cosine_similarities_table.csv")
+
 
 def main(argv):
 
@@ -127,7 +149,7 @@ def main(argv):
         object_labels = ["chocolate", "coconut", "loaf", "bread", "pasta", "cake", "pastry", "crackers", "muffin", "cereal", "muesli", "liquor", "sake", "wine", "cider", "brew", "beer", "aperitif", "coffee", "cocoa", "water", "juice", "lime_juice", "grape_juice", "orange_juice", "cola", "coke", "gingerale", "apple", "apricot", "avocado", "banana", "kiwi", "mango", "orange", "tomato", "artichoke", "corn", "cucumber", "onion", "squash", "chips", "potato_chips", "jelly", "peanut_butter", "ketchup", "chilisauce", "mustard", "salsa", "soy_sauce"]
         cosine_matrix = cosine_heatmap.pairwise_sim_grid(embeddings, bigram_unused_dictionary, object_labels)
 
-        # PRINTS A LIST, IN DESCENDING ORDER, OF PAIRWISE COSINE SIMILARITIES OF ALL OBJECT PAIRS
+        # PRINTS MORE STATISTICS OF COSINE SIMILARITIES OF ALL OBJECT PAIRS
         print_similarities(object_labels, cosine_matrix)
 
         cosine_heatmap.gen_cosine_heatmap(object_labels, [cosine_matrix], "heatmap")
